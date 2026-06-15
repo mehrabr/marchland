@@ -54,6 +54,10 @@ class Battle:
         self.leader = {0:True,1:True}; self.flank = None
         self.fear = np.zeros((self.W,self.H), np.float32)
         self.deadG = [np.zeros((self.W,self.H), np.float32) for _ in (0,1)]
+        # per-tick wall state; initialised here so tick() never sees Python bool
+        self._halt = np.zeros(self.N, bool)
+        self._covb = self.coverb.copy()
+        self._rubble = np.zeros(self.N, bool)
 
     def bern(self, p, key='k'):
         p = np.clip(p, 0, .95)
@@ -86,7 +90,7 @@ class Battle:
         if 'mud' in scn:
             a,b = scn['mud']; mud = (self.x>a)&(self.x<b)
         # movement
-        go = std & ~contact & (self.hes<=0) & ~self.hold & ~self.mounted & ~getattr(self,'_halt',False)
+        go = std & ~contact & (self.hes<=0) & ~self.hold & ~self.mounted & ~self._halt
         spd = 1.5*(1-0.6*self.fat)*np.where(mud,0.45,1.0)
         self.x[go] += (self.advd*spd*DT)[go]
         self.fat[go] += (A['fat_move']*DT*np.where(mud,A['fat_mud'],1.0))[go]
@@ -142,7 +146,7 @@ class Battle:
         if int(self.t/DT) % 5 == 0: self._volley(std, cx, cy)
         # melee
         eff = np.minimum(foe, own*1.6 + 2.0)
-        load = np.clip(eff/np.maximum(own,1) - 1.0 - np.clip((own-1)*0.35,0,1.2)*np.where(getattr(self,'_rubble',np.zeros(self.N,bool)),0.4,1.0) - getattr(self,'_covb',self.coverb), 0, 2.5)
+        load = np.clip(eff/np.maximum(own,1) - 1.0 - np.clip((own-1)*0.35,0,1.2)*np.where(self._rubble,0.4,1.0) - self._covb, 0, 2.5)
         lam = np.where(contact, A['lam0']*self.err*(1+A['fat_amp']*self.fat)*(1+A['lamx']*load), 0)
         op = self.bern(1-np.exp(-lam*DT), 'op')
         died = op & self.bern(np.where(op, A['p_down']*(1-self.armor*0.8), 0), 'kl')
