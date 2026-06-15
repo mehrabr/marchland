@@ -1,0 +1,1 @@
+[{"win": 1, "t": 2176.0, "s": {"0": {"total": 7000, "rout": 2370, "dead": 2060, "pre": 1720, "post": 340, "cap": 0, "broke": 1812.0}, "1": {"total": 7500, "rout": 1230, "dead": 1380, "pre": 1380, "post": 0, "cap": 0, "broke": null}}, "ev": [["feint", 900.0], ["feint", 1800.0], ["side0_broke", 1812.0]], "flank": null}]

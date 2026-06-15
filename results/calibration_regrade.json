@@ -1,0 +1,150 @@
+{
+ "isandlwana_line": {
+  "win": [
+   "Zulu",
+   "A",
+   "Zulu",
+   true
+  ],
+  "sequence_ammo_before_break": [
+   "majority of seeds",
+   "A",
+   "16/16",
+   true
+  ],
+  "defender_dead_frac": [
+   [
+    0.5,
+    0.9
+   ],
+   "B",
+   0.4,
+   false
+  ],
+  "zulu_loss_frac": [
+   [
+    0.05,
+    0.2
+   ],
+   "C",
+   0.1,
+   true
+  ]
+ },
+ "agincourt": {
+  "win": [
+   "English",
+   "A",
+   "English",
+   true
+  ],
+  "french_losses_incl_prisoners": [
+   [
+    4000,
+    11000
+   ],
+   "C",
+   4435,
+   true
+  ],
+  "english_dead": [
+   [
+    112,
+    600
+   ],
+   "C",
+   450,
+   true
+  ],
+  "asymmetry_min": [
+   [
+    5,
+    null
+   ],
+   "B",
+   11,
+   true
+  ]
+ },
+ "hastings": {
+  "win": [
+   "Norman",
+   "A",
+   "Norman",
+   true
+  ],
+  "near_run_contested": [
+   "loser wins 20-50% of seeds",
+   "C",
+   "0%",
+   false
+  ],
+  "casualty_shape_prebreak": [
+   [
+    0.0,
+    0.1
+   ],
+   "B",
+   0.2,
+   false
+  ],
+  "harold_falls": [
+   "majority of seeds",
+   "A",
+   "7/12",
+   true
+  ]
+ },
+ "harfleur_siege": {
+  "negotiated_absent_relief": [
+   "majority",
+   "A",
+   "87%",
+   true
+  ],
+  "duration_days": [
+   [
+    30,
+    40
+   ],
+   "A",
+   38,
+   true
+  ],
+  "besieger_unfit_frac": [
+   [
+    0.15,
+    0.35
+   ],
+   "C",
+   0.27,
+   true
+  ],
+  "storm_launched": [
+   "rare/none",
+   "A",
+   "13%",
+   "tension"
+  ]
+ },
+ "assault_battery": {
+  "escalade_vs_fresh_repulsed": [
+   "majority",
+   "B",
+   "12/12",
+   true
+  ],
+  "breach_vs_starved_carried": [
+   "majority",
+   "B",
+   "5/12",
+   false
+  ],
+  "breach_vs_fresh_contested": [
+   "mixed outcomes",
+   "B",
+   "2 carried / 10 repulsed of 12",
+   true
+  ]
+ }
+}

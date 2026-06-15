@@ -1,0 +1,119 @@
+{
+ "isandlwana_line": {
+  "n": 16,
+  "win0": 0.0,
+  "win1": 1.0,
+  "nobreak": 0.0,
+  "tot0": 1350,
+  "tot1": 19600,
+  "d0": {
+   "pre": 355,
+   "post": 185,
+   "cap": 0
+  },
+  "d1": {
+   "pre": 1950,
+   "post": 0,
+   "cap": 0
+  },
+  "bt0_med": 598,
+  "bt0_rng": [
+   558,
+   690
+  ],
+  "bt1_med": null
+ },
+ "isandlwana_square": {
+  "n": 12,
+  "win0": 0.0,
+  "win1": 0.58,
+  "nobreak": 0.42,
+  "tot0": 690,
+  "tot1": 19000,
+  "d0": {
+   "pre": 250,
+   "post": 20,
+   "cap": 0
+  },
+  "d1": {
+   "pre": 1705,
+   "post": 0,
+   "cap": 0
+  },
+  "bt0_med": 1540,
+  "bt0_rng": [
+   1082,
+   2562
+  ],
+  "bt1_med": null
+ },
+ "agincourt": {
+  "n": 12,
+  "win0": 1.0,
+  "win1": 0.0,
+  "nobreak": 0.0,
+  "tot0": 6000,
+  "tot1": 10200,
+  "d0": {
+   "pre": 450,
+   "post": 0,
+   "cap": 0
+  },
+  "d1": {
+   "pre": 2040,
+   "post": 1125,
+   "cap": 1270
+  },
+  "bt0_med": null,
+  "bt0_rng": null,
+  "bt1_med": 2091
+ },
+ "hastings": {
+  "n": 12,
+  "win0": 0.0,
+  "win1": 1.0,
+  "nobreak": 0.0,
+  "tot0": 7000,
+  "tot1": 7500,
+  "d0": {
+   "pre": 1425,
+   "post": 545,
+   "cap": 40
+  },
+  "d1": {
+   "pre": 685,
+   "post": 0,
+   "cap": 0
+  },
+  "bt0_med": 991,
+  "bt0_rng": [
+   902,
+   1026
+  ],
+  "bt1_med": null
+ },
+ "hastings_drilled": {
+  "n": 12,
+  "win0": 0.0,
+  "win1": 1.0,
+  "nobreak": 0.0,
+  "tot0": 7000,
+  "tot1": 7500,
+  "d0": {
+   "pre": 1800,
+   "post": 425,
+   "cap": 5
+  },
+  "d1": {
+   "pre": 880,
+   "post": 0,
+   "cap": 0
+  },
+  "bt0_med": 1635,
+  "bt0_rng": [
+   902,
+   2344
+  ],
+  "bt1_med": null
+ }
+}
