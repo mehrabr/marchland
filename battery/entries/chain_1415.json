@@ -1,0 +1,6 @@
+{
+  "chain_1415.english_win": ["all seeds", "A", "Validated: chain fat0 mapping produces same outcome distribution as agincourt_marched standalone baseline", "12/12", true],
+  "chain_1415.march_arrives": ["all seeds", "A", "200-mile march in 22 days; historical army arrived despite dysentery and fatigue from siege", "12/12", true],
+  "chain_1415.siege_negotiated": ["majority", "A", "Carries forward harfleur_siege.negotiated_absent_relief into the chain path", "9+/12", true],
+  "chain_1415.trace_deaths_have_cause": ["all death-certs", "A", "Trace integrity invariant: every death-cert must cite melee|volley|pursuit|cavalry|thirst|disease", "verified", true]
+}

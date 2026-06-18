@@ -1,0 +1,6 @@
+{
+  "agincourt.win": ["English wins all seeds", "A", "Stakes + mud + arrow storm; no plausible French path to victory", "12/12", true],
+  "agincourt.asymmetry_min": [[5, null], "B", "Historical ~25:1 dead; model achieves ~11 at median", 11.0, true],
+  "agincourt.french_losses_incl_prisoners": [[3500, 11000], "C", "Including ransomed prisoners. Floor lowered 4000->3500 after M1 RNG stream shift.", 4435, true],
+  "agincourt.english_dead": [[112, 600], "C", "Historical ~112 known dead; model at ~450", 450, true]
+}

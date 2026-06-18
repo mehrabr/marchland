@@ -1,0 +1,5 @@
+{
+  "harfleur_siege.negotiated_absent_relief": ["majority", "A", "Historical outcome: Harfleur terms struck 22 Sept 1415 after 36-day investment", "87%", true],
+  "harfleur_siege.duration_days": [[30, 40], "A", "Historical: 36 days from investment to surrender; model median ~38", 38, true],
+  "harfleur_siege.besieger_unfit_frac": [[0.15, 0.35], "C", "Disease toll from marshy camp at mouth of Lezarde; historical dysentery epidemic", 0.27, true]
+}

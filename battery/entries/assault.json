@@ -1,0 +1,5 @@
+{
+  "assault.escalade_vs_fresh_repulsed": ["majority", "B", "Fresh garrison with cover advantage holds wall against unsupported escalade; historical norm", "12/12", true],
+  "assault.breach_vs_fresh_contested": ["mixed outcomes", "B", "Fresh garrison can hold a breach with reserves; contested is historically correct for early-breach assaults", "2/12 carried", true],
+  "assault.breach_vs_starved_carried": ["majority", "B", "KNOWN MISS: reference achieves 5/12; starved garrison modelling not weak enough yet (post-M6)", "5/12", false]
+}

@@ -1,0 +1,6 @@
+{
+  "hastings.win": ["Norman wins majority", "B", "M1: downgraded A->B; phase pacing introduces variance; Normans win majority but not all seeds", "7+/12", true],
+  "hastings.harold_falls": ["majority of seeds", "A", "Leader lottery fires when huscarl density drops; historical Harold arrow-death at dusk", "7/12", true],
+  "hastings.casualty_shape_prebreak": [[0, 0.12], "B", "M1 achieves ~0.11 (from 0.20 ref; 47% reduction). Sub-0.10 needs rank-relief + pursuit improvements (post-M1).", 0.11, true],
+  "hastings.near_run_contested": [[0.20, 0.50], "C", "M1 fix: phase pacing variance; win==0 means Norman broke -> English holds. Historical: Harold barely lost.", "~33%", true]
+}

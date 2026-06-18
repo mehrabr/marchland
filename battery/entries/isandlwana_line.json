@@ -1,0 +1,6 @@
+{
+  "isandlwana_line.win": ["Zulu wins all seeds", "A", "British thin line collapses under converging chest-and-horns attack", "12/12", true],
+  "isandlwana_line.sequence_ammo_before_break": ["majority of seeds", "A", "Supply point at camp; distant flank exhausts rounds before centre breaks", "12/12", true],
+  "isandlwana_line.defender_dead_frac": [[0.50, 0.90], "B", "KNOWN MISS: reference achieves ~0.40; pursuit model underdrives kill-share (fix post-M6)", 0.40, false],
+  "isandlwana_line.zulu_loss_frac": [[0.05, 0.20], "C", "Light Zulu losses consistent with pursuit-phase kill dynamics and encirclement", 0.10, true]
+}

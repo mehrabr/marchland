@@ -16,6 +16,22 @@ from core.scenarios import SCN_BATTLE, SCN_MARCH, SCN_SIEGE
 from core.chain import run_chain_1415
 from battery.targets import TARGETS
 
+ENTRIES_DIR = Path(__file__).parent / "entries"
+
+
+def load_entries() -> dict:
+    """Load all battery entry JSON files from battery/entries/.
+
+    Returns a flat dict mapping target_key -> [range, grade, source_note, actual, pass].
+    """
+    entries = {}
+    if not ENTRIES_DIR.exists():
+        return entries
+    for path in sorted(ENTRIES_DIR.glob("*.json")):
+        data = json.loads(path.read_text())
+        entries.update(data)
+    return entries
+
 # Chain runners live here (not in core/scenarios) to avoid circular imports.
 SCN_CHAIN = {'chain_1415': run_chain_1415}
 

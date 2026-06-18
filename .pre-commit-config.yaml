@@ -1,0 +1,11 @@
+repos:
+  - repo: local
+    hooks:
+      - id: receipts-grep
+        name: "receipts grep: no quality coefficients"
+        entry: python -m tools.receipts_grep
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: false
+        files: ^(core/scenarios|core/cultures)/.*\.py$
