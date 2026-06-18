@@ -86,17 +86,25 @@ def _print_outcome_table(results, seeds):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="MARCHLAND 1415 vertical slice")
-    ap.add_argument("campaign", nargs="?", default="1415",
-                    help="Campaign name (currently only '1415')")
-    ap.add_argument("--seeds", type=int, default=12)
+    ap = argparse.ArgumentParser(description="MARCHLAND CLI")
+    ap.add_argument("command", nargs="?", default="1415",
+                    help="'1415' for the chain demo; 'season' for an interactive season")
+    ap.add_argument("--seeds", type=int, default=12,
+                    help="Seed count for the 1415 chain demo")
     ap.add_argument("--out-dir", default=None,
-                    help="Directory to save trace JSON files")
+                    help="Directory to save trace JSON files (1415 command)")
+    ap.add_argument("--culture", default="harfleur_1415",
+                    help="Culture module name for the season command")
+    ap.add_argument("--seed", type=int, default=0,
+                    help="RNG seed for the season command")
     args = ap.parse_args()
 
-    if args.campaign != "1415":
-        print(f"Unknown campaign '{args.campaign}'. Only '1415' is available in M2.",
+    if args.command == "1415":
+        run_1415(seeds=args.seeds, out_dir=args.out_dir)
+    elif args.command == "season":
+        from clients.cli.season import run_season
+        run_season(culture_name=args.culture, seed=args.seed)
+    else:
+        print(f"Unknown command '{args.command}'. Use '1415' or 'season'.",
               file=sys.stderr)
         sys.exit(1)
-
-    run_1415(seeds=args.seeds, out_dir=args.out_dir)

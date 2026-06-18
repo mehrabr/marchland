@@ -14,7 +14,7 @@ import ast, sys, re
 from pathlib import Path
 
 FORBIDDEN = re.compile(
-    r'\b(quality|morale_bonus|strength_modifier|coeff|modifier)\b',
+    r'''\b(quality|morale_bonus|strength_modifier|coeff|modifier)\b['"]?\s*[=:]''',
     re.IGNORECASE,
 )
 

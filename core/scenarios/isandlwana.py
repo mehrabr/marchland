@@ -23,13 +23,20 @@ def isandlwana_line():
 
 
 def isandlwana_square():
+    # Counterfactual: British form a proper square on the nek; Zulu horn-and-chest closes.
+    # Geometric note for M1: all Zulu cohorts are compressed to British fire y-band (278-332)
+    # so none escape off the field's left edge. The historical wide encirclement is post-M1.
     co = []
     co.append(dict(side=0, n=69, x=(180,200), y=(280,330), hold=1, ranged=1, ammo=8, allround=1,
-                   err=0.7, armor=0.0, belief=0.8, disc=0.8, fat0=0.05))
-    co.append(dict(side=1, n=900, x=(620,700), y=(170,430), err=0.8, belief=0.85, evade=1, fat0=0.10, crowd_cap=12, disc=0.6))
-    co.append(dict(side=1, n=600, x=(640,720), y=(380,580), err=0.85, belief=0.85, evade=1, fat0=0.10, crowd_cap=12, disc=0.5))
-    co.append(dict(side=1, n=300, x=(620,700), y=(20,140), err=0.85, belief=0.85, evade=1, fat0=0.12, crowd_cap=12, disc=0.5))
-    co.append(dict(side=1, n=100, x=(30,70), y=(180,420), advdir=+1, delay=600, err=0.85, belief=0.85, evade=1, fat0=0.15, disc=0.5))
+                   err=0.7, armor=0.0, belief=0.85, disc=0.9, fat0=0.05, relief_roles=1))  # drilled fire-rotation (E receipt)
+    co.append(dict(side=1, n=900, x=(620,700), y=(278,332), err=0.8, belief=0.85, evade=1, fat0=0.10, crowd_cap=12, disc=0.6, assault_wave=1))  # chest (horn-and-chest tactic: D)
+    co.append(dict(side=1, n=600, x=(640,720), y=(279,330), err=0.85, belief=0.85, evade=1, fat0=0.10, crowd_cap=12, disc=0.5, assault_wave=1))  # left horn
+    co.append(dict(side=1, n=300, x=(620,700), y=(280,331), err=0.85, belief=0.85, evade=1, fat0=0.12, crowd_cap=12, disc=0.5, assault_wave=1))  # right horn
+    co.append(dict(side=1, n=100, x=(30,70), y=(282,328), advdir=+1, delay=600, err=0.85, belief=0.85, evade=1, fat0=0.15, disc=0.5, assault_wave=1))  # encircling tip
     return dict(field=(800,600), cohorts=co, range={0:120}, supply_xy=(190,305),
-                supply_side=0, supply_d0=400, break_frac=0.5,
+                supply_side=0, supply_d0=400,
+                # Per-side break: British square holds until 50% not-standing; Zulu horn-and-chest
+                # loses doctrinal cohesion at 40% (wave-assault doctrine: retreat on repulse is expected).
+                break_frac={0: 0.50, 1: 0.40},
+                reform_retreat=True,  # Zulu horn-and-chest: explicit withdraw-to-regroup (D receipt)
                 pursuit_intensity={1:1.0, 0:0.2}, cap_p={})

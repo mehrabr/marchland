@@ -22,6 +22,15 @@ BATTLE_A = dict(
     p_down=0.45,      # A: P(casualty | opening)
     hes=16.0,         # A: hesitation duration (seconds)
     horse_solid=3.0,  # A: foe density that balks cavalry
+    # M1: phase pacing (assault-wave cycle)
+    repulse_contact_s=200.0,  # A: seconds in contact before attacker repulse trigger
+    reforming_s=360.0,        # A: attacker REFORMING duration (seconds)
+    defender_reform_s=240.0,  # A: defender lull REFORMING duration (seconds)
+    fat_reform_bonus=0.004,   # A: extra fatigue recovery per tick during REFORMING
+    relief_fat_restore=0.12,  # A: fatigue reduction per rank-swap at REFORMING entry
+    cavalry_reach_s=80.0,       # A: seconds in reach before cavalry withdraws to reform
+    cavalry_reform_s=120.0,     # A: cavalry REFORMING duration (seconds)
+    reform_retreat_spd=0.25,    # A: assault-wave infantry retreat speed (world-units/s) during REFORMING
     w=dict(
         downs=3.2,    # A: appraisal weight — own dead on ground
         rout=2.4,     # A: appraisal weight — own routing nearby
