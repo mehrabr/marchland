@@ -13,7 +13,11 @@ from core.lattice import Battle
 from core.siege import run_siege
 from core.march import run_march
 from core.scenarios import SCN_BATTLE, SCN_MARCH, SCN_SIEGE
+from core.chain import run_chain_1415
 from battery.targets import TARGETS
+
+# Chain runners live here (not in core/scenarios) to avoid circular imports.
+SCN_CHAIN = {'chain_1415': run_chain_1415}
 
 
 def run_scenario(name, seeds=12):
@@ -23,6 +27,8 @@ def run_scenario(name, seeds=12):
         return [run_march(SCN_MARCH[name](), s) for s in range(seeds)]
     if name in SCN_SIEGE:
         return [run_siege(SCN_SIEGE[name](), s) for s in range(seeds)]
+    if name in SCN_CHAIN:
+        return [SCN_CHAIN[name](s) for s in range(seeds)]
     raise ValueError(f"Unknown scenario: {name}")
 
 
@@ -37,7 +43,7 @@ def _grade_color(grade, passed):
 def grade_all(seeds=12):
     # collect scenario results
     cache = {}
-    for name in list(SCN_BATTLE) + list(SCN_MARCH) + list(SCN_SIEGE):
+    for name in list(SCN_BATTLE) + list(SCN_MARCH) + list(SCN_SIEGE) + list(SCN_CHAIN):
         cache[name] = run_scenario(name, seeds)
 
     rows = []
@@ -76,6 +82,7 @@ def _resolve_scenario(key):
         "assault.escalade": "escalade_fresh",
         "assault.breach_vs_fresh": "breach_fresh",
         "assault.breach_vs_starved": "breach_starved",
+        "chain_1415.": "chain_1415",
     }
     for prefix, scn in prefix_map.items():
         if key.startswith(prefix):

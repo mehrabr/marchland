@@ -26,7 +26,7 @@ def scenario(**kw):
     s = dict(_DEFAULTS); s.update(kw); return s
 
 
-def run_march(scn, seed):
+def run_march(scn, seed, trace=None):
     r = np.random.default_rng(seed)
     N = scn['start']; sick=0; strag=0; des=0; dead=0
     coh = scn['cohesion0']; fat = scn['fat0']
@@ -35,7 +35,8 @@ def run_march(scn, seed):
     water_carried = scn.get('water_carry_days', 1.0)
     dry_streak = 0
     miles=0.0; day=0; log=[]
-    while miles < scn['distance'] and day < scn['max_days']:
+    dist = scn['distance']
+    while miles < dist and day < scn['max_days']:
         day += 1
         eff = max(N - sick - strag, 0)
         rest = scn['rest_every'] and day % scn['rest_every'] == 0
@@ -59,8 +60,11 @@ def run_march(scn, seed):
             dry_streak += 1
             if dry_streak > water_carried:
                 lost = r.binomial(eff, min(THIRST_K*scn['heat'],0.5))
-                dead += lost; N -= lost
-                fat = min(1.0, fat+0.10)
+                if lost > 0:
+                    dead += lost; N -= lost
+                    fat = min(1.0, fat+0.10)
+                    if trace:
+                        trace.record_event('thirst', float(day), count=int(lost))
         else: dry_streak = 0
         # column physics
         vcap = min(MODES[m]['vcap'] for m,n in carriers.items() if n>0) if carriers else SPEED
@@ -89,11 +93,21 @@ def run_march(scn, seed):
         nd = r.binomial(eff, min(d_rate,0.3)); des += nd; N -= nd
         hz = 0.0009*scn['disease_env']*(1.6 if starving else 1)
         ns = r.binomial(eff, min(hz,0.3)); sick += ns
-        dead += r.binomial(ns,0.2); sick = max(sick - int(ns*0.2) - r.binomial(max(sick,0),0.06), 0)
+        dis_dead = r.binomial(ns, 0.2)
+        dead += dis_dead
+        if trace and dis_dead > 0:
+            trace.record_event('disease', float(day), count=int(dis_dead))
+        sick = max(sick - int(ns*0.2) - r.binomial(max(sick,0),0.06), 0)
         for ev_day, extra in scn.get('detours', []):
-            if day == ev_day: scn['distance'] += extra; log.append(('detour',day,extra))
+            if day == ev_day:
+                dist += extra; log.append(('detour',day,extra))
+                if trace:
+                    trace.record_event('detour', float(day), extra=int(extra))
         miles += done
-    return dict(arrived=miles>=scn['distance'], days=day, start=scn['start'],
+    if trace:
+        trace.record_event('arrived' if miles >= dist else 'failed', float(day),
+                           miles=round(miles, 1), fatigue=round(fat, 2))
+    return dict(arrived=miles>=dist, days=day, start=scn['start'],
                 effective=int(max(N-sick-strag-dead,0)), sick=int(sick), stragglers=int(strag),
                 deserted=int(des), dead=int(dead), fatigue=round(fat,2), cohesion=round(coh,2),
                 stock_days=round(float(stock/max(N*GRAIN_KG,1)),1), log=log[:3])

@@ -8,7 +8,7 @@ import numpy as np
 from .constants import SIEGE_A as A
 
 
-def run_siege(scn, seed):
+def run_siege(scn, seed, trace=None):
     r = np.random.default_rng(seed)
     bN = scn['besieger']; gN = scn['garrison']
     b_sick = 0; b_dead = 0
@@ -16,6 +16,7 @@ def run_siege(scn, seed):
     breach = 0.0
     relief_day = scn['relief_day']() if callable(scn['relief_day']) else scn['relief_day']
     terms_day = None; outcome = None; day = 0
+    food = scn.get('besieger_food', 0) if not scn['sea_supply'] else 0
     log = []
     while day < scn.get('max_days', 80):
         day += 1
@@ -24,12 +25,15 @@ def run_siege(scn, seed):
         hz = A['dis_base']*(1+A['dis_week']*week)*scn['camp_factor']
         new_sick = r.binomial(max(bN-b_sick-b_dead,0), min(hz,0.5))
         b_sick += new_sick
-        b_dead += r.binomial(new_sick, 0.25)
+        new_dead = r.binomial(new_sick, 0.25)
+        b_dead += new_dead
+        if trace and new_dead > 0:
+            trace.record_event('disease', float(day), count=int(new_dead))
         eff = bN - b_sick - b_dead
         # besieger supply clock
         if not scn['sea_supply']:
-            scn['besieger_food'] -= 1
-            if scn['besieger_food'] <= 0:
+            food -= 1
+            if food <= 0:
                 outcome = ('ABANDONED_supply', day); break
         # battery and mining
         breach += scn['guns_rate']*r.uniform(0.7,1.3)*(eff/bN)
@@ -44,6 +48,8 @@ def run_siege(scn, seed):
         if honor_ok and relief_hopeless and terms_day is None and r.random() < 0.22:
             terms_day = day + A['relief_window']
             log.append(('terms_struck', day))
+            if trace:
+                trace.record_event('terms_struck', float(day))
         if terms_day and day >= terms_day:
             outcome = ('NEGOTIATED', day); break
         # besieger storm decision
@@ -52,11 +58,15 @@ def run_siege(scn, seed):
         if breach >= 1.0 and pressure > scn['storm_threshold'] and terms_day is None:
             dead = int(eff*cost*r.uniform(0.7,1.3))
             b_dead += dead
+            if trace and dead > 0:
+                trace.record_event('assault', float(day), dead=int(dead))
             if r.random() < 0.85:
                 outcome = ('STORMED_sack', day); break
             else:
                 breach = 0.4; log.append(('assault_repulsed', day))
     if outcome is None: outcome = ('ONGOING', day)
+    if trace:
+        trace.record_event(outcome[0], float(outcome[1]))
     unfit = b_sick + b_dead
     return dict(outcome=outcome[0], day=outcome[1], dead=int(b_dead),
                 sick=int(b_sick), unfit_frac=round(unfit/bN,3),

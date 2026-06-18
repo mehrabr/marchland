@@ -1,4 +1,9 @@
-"""Unified scenario registry. Import SCN_BATTLE, SCN_MARCH, or SCN_SIEGE."""
+"""Unified scenario registry. Import SCN_BATTLE, SCN_MARCH, or SCN_SIEGE.
+
+Chain runners (SCN_CHAIN) live in battery/runner.py to avoid a circular import:
+core.chain imports core.scenarios.* which triggers this __init__, which would
+re-import core.chain before it has finished loading.
+"""
 from .agincourt import agincourt, agincourt_marched
 from .hastings import hastings, hastings_drilled, hastings_p1, hastings_p2
 from .isandlwana import isandlwana_line, isandlwana_square
