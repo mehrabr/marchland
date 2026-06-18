@@ -4,20 +4,28 @@ The patron's belief state is updated only by rider dispatches — they do not
 witness the trace directly. Beliefs therefore diverge from ground truth
 whenever dispatches are absent, partial, or misleading.
 
-Schema: {phase: {claim: (value, confidence)}}
-  phase    — 'siege' | 'march' | 'battle'
-  claim    — e.g. 'outcome', 'day', 'casualties', 'won'
-  value    — the believed value
+M4 extension: beliefs carry a source tag ('dispatch' | 'landscape' | 'sightlines'
+| 'nearby_units') so that beliefs_for_station() can filter to what the
+commander's body can actually see.
+
+Schema: {phase: {claim: (value, confidence, source)}}
+  phase      — 'siege' | 'march' | 'battle'
+  claim      — e.g. 'outcome', 'day', 'casualties', 'won'
+  value      — the believed value
   confidence — float in [0, 1]; 1.0 = rider arrived fresh; lower = rumour/partial
+  source     — how this belief was acquired (see SOURCE_VISIBILITY in stations.py)
 """
 from typing import Any, Dict, Optional, Tuple
 
+from core.stations import Station, station_can_see
+
 
 class BeliefDB:
-    """Patron's belief state; updated only by rider dispatches."""
+    """Patron's belief state; updated by rider dispatches or direct observation."""
 
     def __init__(self):
-        self._beliefs: Dict[str, Dict[str, Tuple[Any, float]]] = {}
+        # {phase: {claim: (value, confidence, source)}}
+        self._beliefs: Dict[str, Dict[str, Tuple[Any, float, str]]] = {}
 
     # ------------------------------------------------------------------
     # Write path: rider dispatches
@@ -34,14 +42,43 @@ class BeliefDB:
             self._beliefs[phase] = {}
         for claim, value in claims.items():
             # Later dispatches overwrite earlier ones (rider with fresher news)
-            self._beliefs[phase][claim] = (value, confidence)
+            self._beliefs[phase][claim] = (value, confidence, 'dispatch')
+
+    def observe(self, phase: str, claims: Dict[str, Any],
+                source: str) -> None:
+        """Record a direct observation (landscape, sightlines, or nearby_units).
+
+        Confidence is derived from the source type:
+          landscape   — 0.75  (broad positional view, no fine detail)
+          sightlines  — 0.85  (cohort-level, noise on numbers)
+          nearby_units — 0.95 (immediate vicinity, clear but narrow)
+
+        Observations only overwrite an existing belief if they have equal or
+        higher confidence, so a fresh rider's dispatch is not downgraded by a
+        stale landscape scan.
+        """
+        CONFIDENCE: Dict[str, float] = {
+            'landscape':    0.75,
+            'sightlines':   0.85,
+            'nearby_units': 0.95,
+        }
+        conf = CONFIDENCE.get(source, 0.60)
+        if phase not in self._beliefs:
+            self._beliefs[phase] = {}
+        for claim, value in claims.items():
+            existing = self._beliefs[phase].get(claim)
+            if existing is None or conf >= existing[1]:
+                self._beliefs[phase][claim] = (value, conf, source)
 
     # ------------------------------------------------------------------
     # Read path: query beliefs
 
     def get(self, phase: str, claim: str) -> Optional[Tuple[Any, float]]:
         """Return (value, confidence) or None if the patron has no belief."""
-        return self._beliefs.get(phase, {}).get(claim)
+        entry = self._beliefs.get(phase, {}).get(claim)
+        if entry is None:
+            return None
+        return (entry[0], entry[1])   # strip source, preserve public API
 
     def believed(self, phase: str, claim: str, default: Any = None) -> Any:
         """Return only the believed value (not confidence), or default."""
@@ -50,6 +87,22 @@ class BeliefDB:
 
     def phases_with_beliefs(self):
         return list(self._beliefs.keys())
+
+    def beliefs_for_station(self, station: Station) -> Dict[str, Dict[str, Tuple[Any, float]]]:
+        """Return beliefs visible from the given command station.
+
+        Filters claims by their source against the station's information_set.
+        Returns {phase: {claim: (value, confidence)}} — same shape as get().
+        """
+        result: Dict[str, Dict[str, Tuple[Any, float]]] = {}
+        for phase, claims in self._beliefs.items():
+            visible: Dict[str, Tuple[Any, float]] = {}
+            for claim, (value, conf, source) in claims.items():
+                if station_can_see(station, source):
+                    visible[claim] = (value, conf)
+            if visible:
+                result[phase] = visible
+        return result
 
     # ------------------------------------------------------------------
     # Audit: compare beliefs against trace ground truth
@@ -64,9 +117,9 @@ class BeliefDB:
           match is True/False if actual is known, None if claim has no trace analog.
         """
         findings: Dict[str, Dict] = {}
-        for phase, beliefs in self._beliefs.items():
+        for phase, claims in self._beliefs.items():
             phase_truth = trace_summary.get(phase, {})
-            for claim, (believed, confidence) in beliefs.items():
+            for claim, (believed, confidence, _source) in claims.items():
                 actual = phase_truth.get(claim)
                 if actual is None:
                     match = None      # trace has no ground truth for this claim
@@ -86,7 +139,7 @@ class BeliefDB:
         return {
             phase: {
                 claim: {'value': v, 'confidence': c}
-                for claim, (v, c) in claims.items()
+                for claim, (v, c, _s) in claims.items()
             }
             for phase, claims in self._beliefs.items()
         }
