@@ -88,7 +88,7 @@ def _print_outcome_table(results, seeds):
 def main():
     ap = argparse.ArgumentParser(description="MARCHLAND CLI")
     ap.add_argument("command", nargs="?", default="1415",
-                    help="'1415' for the chain demo; 'season' for an interactive season")
+                    help="'tutorial' to start; '1415' for the chain demo; 'season' for a full season")
     ap.add_argument("--seeds", type=int, default=12,
                     help="Seed count for the 1415 chain demo")
     ap.add_argument("--out-dir", default=None,
@@ -96,7 +96,7 @@ def main():
     ap.add_argument("--culture", default="harfleur_1415",
                     help="Culture module name for the season command")
     ap.add_argument("--seed", type=int, default=0,
-                    help="RNG seed for the season command")
+                    help="RNG seed for the season or tutorial command")
     args = ap.parse_args()
 
     if args.command == "1415":
@@ -104,7 +104,10 @@ def main():
     elif args.command == "season":
         from clients.cli.season import run_season
         run_season(culture_name=args.culture, seed=args.seed)
+    elif args.command == "tutorial":
+        from clients.cli.tutorial import run_tutorial
+        run_tutorial(seed=args.seed)
     else:
-        print(f"Unknown command '{args.command}'. Use '1415' or 'season'.",
+        print(f"Unknown command '{args.command}'. Use 'tutorial', '1415', or 'season'.",
               file=sys.stderr)
         sys.exit(1)

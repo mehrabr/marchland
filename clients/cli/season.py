@@ -563,7 +563,15 @@ def _operations_phase(state: SeasonState, io: _IO) -> None:
             io.print("  Operations concluded.")
             state.done = True
         elif cmd == 'help':
-            io.print(_OPERATIONS_HELP)
+            if arg:
+                from clients.cli.help import show_help
+                show_help(arg, io)
+            else:
+                io.print(_OPERATIONS_HELP)
+                io.print(
+                    "  For mechanic details: help march | help battle | help siege\n"
+                    "  | help stations | help receipts | help dispatch | help trace | help table"
+                )
         elif cmd == '':
             pass
         else:
