@@ -429,10 +429,10 @@ def _print_winter_court(state: TutorialState, io: _IO) -> None:
 _TUTORIAL_COMMANDS = """\
 Tutorial commands:
   march [normal/push/rest] — march the escort to Ardres
-  engage                   — fight the French patrol (after sighting)
-  evade                    — find a way around the patrol (+1 day)
+  engage                   — fight the French patrol (available after march)
+  evade                    — find a way around the patrol (+1 day, available after march)
   status                   — show current state
-  help [topic]             — explain a mechanic (try 'help receipts', 'help march')
+  help [topic]             — list topics (no arg) or explain one
   done                     — conclude operations and go to winter court
 """
 
@@ -482,7 +482,7 @@ def _operations_phase(state: TutorialState, io: _IO) -> None:
 
         elif cmd == 'engage':
             if not patrol_encountered:
-                io.print("  No patrol sighted yet. March first ('march').")
+                io.print("  engage and evade become available once the march is complete — type 'march' first.")
                 continue
             if patrol_decided:
                 io.print("  The patrol has already been dealt with.")
@@ -495,7 +495,7 @@ def _operations_phase(state: TutorialState, io: _IO) -> None:
 
         elif cmd == 'evade':
             if not patrol_encountered:
-                io.print("  No patrol sighted. March first ('march').")
+                io.print("  engage and evade become available once the march is complete — type 'march' first.")
                 continue
             if patrol_decided:
                 io.print("  Already past the patrol.")

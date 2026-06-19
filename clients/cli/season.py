@@ -605,9 +605,11 @@ def _audit_phase(state: SeasonState, io: _IO) -> None:
         io.print("  " + "-" * 70)
         for key, f in findings.items():
             b = str(f['believed'])
-            a = str(f['actual']) if f['actual'] is not None else '(unknown)'
+            a = str(f['actual']) if f['actual'] is not None else '(not in trace summary)'
             m = _match_glyph(f['match'])
             io.print(f"  {key:<25} {b:<18} {a:<18} {m}")
+        if any(f['actual'] is None for f in findings.values()):
+            io.print("  † claim has no trace analog — patron accepts as reported")
     else:
         io.print("  No dispatches received — patron has no account of operations.")
     io.print()
