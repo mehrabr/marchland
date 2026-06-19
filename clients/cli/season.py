@@ -534,7 +534,7 @@ Available commands:
   table          — show the campaign Table
   status         — show elapsed days and operation results
   done           — conclude operations and proceed to audit
-  help           — show this message
+  help [topic]   — list topics (no arg) or explain one
 """
 
 
@@ -597,6 +597,19 @@ def _operations_phase(state: SeasonState, io: _IO) -> None:
         elif cmd == 'status':
             _print_status(state, io)
         elif cmd in ('done', 'quit', 'q'):
+            ops_incomplete = (
+                state.siege_result is not None and state.march_result is None
+            ) or (
+                state.march_result is not None and state.battle_result is None
+            )
+            if ops_incomplete:
+                if state.march_result is None:
+                    io.print("  You have not yet marched or engaged. Close operations? [yes/no]:")
+                else:
+                    io.print("  You have not yet engaged in battle. Close operations? [yes/no]:")
+                answer = io.input("> ").strip().lower()
+                if answer not in ('yes', 'y'):
+                    continue
             io.print("  Operations concluded.")
             state.done = True
         elif cmd == 'help':

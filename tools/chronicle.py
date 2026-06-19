@@ -107,17 +107,24 @@ def _march_paragraph(trace: Dict) -> str:
         miles = arrived_ev[2].get('miles', '?')
         fat = arrived_ev[2].get('fatigue', '?')
         status = "arrived" if arrived_ev[0] == 'arrived' else "failed to arrive"
+        # Citation inline (not at sentence end) to vary prose rhythm
         parts.append(
-            f"The army {status} at its destination in {days} days "
-            f"({miles} miles marched, fatigue {fat}) "
-            f"(trace: {arrived_ev[0]}@day{days})."
+            f"In {days} days the army {status} (trace: {arrived_ev[0]}@day{days}), "
+            f"covering {miles} miles with a final fatigue of {fat}."
         )
 
     for detour in detour_evs:
-        parts.append(
-            f"A detour of {detour[2].get('extra','?')} miles was taken on day {int(detour[1])} "
-            f"(trace: detour@day{int(detour[1])})."
-        )
+        extra = detour[2].get('extra', '?')
+        day = int(detour[1])
+        reason = detour[2].get('reason', '')
+        if reason:
+            reason_text = reason.replace('_', ' ')
+            parts.append(f"A {extra}-mile detour was forced by {reason_text} on day {day}.")
+        else:
+            parts.append(
+                f"A detour of {extra} miles was taken on day {day} "
+                f"(trace: detour@day{day})."
+            )
 
     if thirst_total > 0:
         parts.append(

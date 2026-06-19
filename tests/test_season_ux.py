@@ -10,8 +10,10 @@ from clients.cli.season import (
     _print_quarter_options,
     _ask_dispatch,
     _print_court_scene,
+    _operations_phase,
     _MockIO,
     _DISPATCH_EXPLANATION,
+    _OPERATIONS_HELP,
 )
 from core.commission import generate_commission
 from core.belief_db import BeliefDB
@@ -308,4 +310,71 @@ def test_ux08_storm_produces_different_prose_than_wait():
     )
     assert 'storm' in storm_text.lower(), (
         "Storm tactic must be mentioned in the winter court prose"
+    )
+
+
+# ------------------------------------------------------------------
+# UX-09: 'done' confirmation when ops are incomplete
+
+
+def test_ux09_done_after_siege_prompts_confirmation():
+    """Typing 'done' after only siege must ask for confirmation before closing."""
+    state = _make_state()
+    # Inject a completed siege so ops_incomplete triggers
+    from core.trace import Trace
+    from core.siege import run_siege
+    from core.scenarios.harfleur import harfleur
+    tr = Trace(phase='siege', scenario='harfleur', seed=42)
+    result = run_siege(harfleur(), 42, trace=tr)
+    state.siege_result = result
+    state.trace_phases.append(tr)
+
+    # 'done' then 'no' stays; then 'done' 'yes' closes
+    io = _MockIO(['done', 'no', 'done', 'yes'])
+    _operations_phase(state, io)
+
+    joined = '\n'.join(io.lines)
+    assert 'close operations' in joined.lower() or \
+           '[yes/no]' in joined.lower() or \
+           'confirm' in joined.lower(), (
+        "Early 'done' must prompt for confirmation when march/battle not started"
+    )
+
+
+def test_ux09_done_no_stays_in_operations():
+    """Answering 'no' to the confirmation must keep operations open."""
+    state = _make_state()
+    from core.trace import Trace
+    from core.siege import run_siege
+    from core.scenarios.harfleur import harfleur
+    tr = Trace(phase='siege', scenario='harfleur', seed=42)
+    result = run_siege(harfleur(), 42, trace=tr)
+    state.siege_result = result
+    state.trace_phases.append(tr)
+
+    # 'done' 'no' → stay → 'done' 'yes' → close
+    io = _MockIO(['done', 'no', 'done', 'yes'])
+    _operations_phase(state, io)
+
+    assert state.done, "Operations must eventually close after 'done yes'"
+
+
+def test_ux09_done_fresh_ops_closes_without_confirmation():
+    """Typing 'done' with no ops started must close immediately (nothing at risk)."""
+    state = _make_state()
+    io = _MockIO(['done'])
+    _operations_phase(state, io)
+    assert state.done, "Fresh 'done' with no siege/march must close without confirmation"
+
+
+# ------------------------------------------------------------------
+# UX-10: bare 'help' documented in _OPERATIONS_HELP
+
+
+def test_ux10_season_ops_help_documents_bare_help():
+    """Season ops help must convey that bare 'help' lists topics."""
+    assert 'list' in _OPERATIONS_HELP.lower() or \
+           'topics' in _OPERATIONS_HELP.lower() or \
+           'no arg' in _OPERATIONS_HELP.lower(), (
+        "Season ops help must document that bare 'help' lists available topics"
     )

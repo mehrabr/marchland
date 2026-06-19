@@ -1,4 +1,4 @@
-"""Tests for UX-01, UX-05, UX-07: tutorial UX issues."""
+"""Tests for UX-01, UX-05, UX-07, UX-09, UX-10: tutorial UX issues."""
 import importlib
 
 import numpy as np
@@ -54,7 +54,7 @@ def test_ux01_gate_error_is_instructive_engage():
     commission = generate_commission(culture, np.random.default_rng(0))
     state = TutorialState(commission=commission, seed=0,
                           patron_favor=culture['career']['starting_patron_favor'])
-    io = _MockIO(['engage', 'done'])
+    io = _MockIO(['engage', 'done', 'yes'])
     _operations_phase(state, io)
     joined = '\n'.join(io.lines)
     assert 'march' in joined.lower(), "Gate error must mention 'march'"
@@ -69,7 +69,7 @@ def test_ux01_gate_error_is_instructive_evade():
     commission = generate_commission(culture, np.random.default_rng(0))
     state = TutorialState(commission=commission, seed=0,
                           patron_favor=culture['career']['starting_patron_favor'])
-    io = _MockIO(['evade', 'done'])
+    io = _MockIO(['evade', 'done', 'yes'])
     _operations_phase(state, io)
     joined = '\n'.join(io.lines)
     assert 'march' in joined.lower(), "Evade gate error must mention 'march'"
@@ -191,3 +191,60 @@ def test_ux07_high_favor_shows_commission_offer():
     _print_winter_court(state, io)
     joined = '\n'.join(io.lines)
     assert 'commission' in joined.lower(), "High favor must show commission offer"
+
+
+# ------------------------------------------------------------------
+# UX-09: 'done' without march prompts confirmation in tutorial
+
+
+def _make_tutorial_ops_state(seed: int = 0) -> TutorialState:
+    module = importlib.import_module('core.cultures.tutorial_escort')
+    culture = module.CULTURE
+    commission = generate_commission(culture, np.random.default_rng(seed))
+    return TutorialState(commission=commission, seed=seed,
+                         patron_favor=culture['career']['starting_patron_favor'])
+
+
+def test_ux09_tutorial_done_without_march_prompts_confirmation():
+    """Typing 'done' before march in the tutorial must ask for confirmation."""
+    state = _make_tutorial_ops_state()
+    io = _MockIO(['done', 'no', 'done', 'yes'])
+    _operations_phase(state, io)
+    joined = '\n'.join(io.lines)
+    assert 'close operations' in joined.lower() or \
+           '[yes/no]' in joined.lower() or \
+           'confirm' in joined.lower(), (
+        "Tutorial 'done' before march must prompt for confirmation"
+    )
+
+
+def test_ux09_tutorial_done_no_stays_in_ops():
+    """Answering 'no' to confirmation must keep tutorial operations open."""
+    state = _make_tutorial_ops_state()
+    io = _MockIO(['done', 'no', 'march normal', 'evade', 'done'])
+    _operations_phase(state, io)
+    # After 'done no', must have marched (operations continued)
+    assert state.march_result is not None, (
+        "Operations must continue after 'done no' — march must have run"
+    )
+
+
+def test_ux09_tutorial_done_after_march_closes_without_confirmation():
+    """Typing 'done' after march (patrol resolved) must close without re-prompting."""
+    state = _make_tutorial_ops_state()
+    io = _MockIO(['march normal', 'evade', 'done'])
+    _operations_phase(state, io)
+    assert state.done, "done after march+evade must close operations"
+
+
+# ------------------------------------------------------------------
+# UX-10: bare 'help' documented in tutorial command list
+
+
+def test_ux10_tutorial_command_list_documents_bare_help():
+    """Tutorial command list must convey that bare 'help' lists topics."""
+    assert 'list' in _TUTORIAL_COMMANDS.lower() or \
+           'topics' in _TUTORIAL_COMMANDS.lower() or \
+           'no arg' in _TUTORIAL_COMMANDS.lower(), (
+        "Tutorial command list must document that bare 'help' lists available topics"
+    )

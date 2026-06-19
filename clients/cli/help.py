@@ -241,10 +241,8 @@ def get_help(topic: Optional[str] = None) -> str:
         return _TOPICS[matches[0]]
     if matches:
         return f"Did you mean: {', '.join(sorted(matches))}?"
-    return (
-        f"Unknown topic '{topic}'.\n"
-        f"Available: {', '.join(_TOPICS.keys())}"
-    )
+    topic_list = '\n'.join(f"  {k}" for k in _TOPICS.keys())
+    return f"Unknown topic '{topic}'.\nAvailable topics:\n{topic_list}"
 
 
 def show_help(topic: Optional[str] = None, io=None) -> None:

@@ -8,7 +8,7 @@ def agincourt_march():
         land_density=14, season_factor=0.7, stock_days=8, weather=1.5,
         officers=0.85, camp_quality=0.7, home_pull=0.05, pay_arrears=0.2,
         desert_share=0.3, cohesion0=0.75, fat0=0.20,
-        rumor_pressure=1.0, detours=[(8,60)], max_days=22,
+        rumor_pressure=1.0, detours=[(8,60,'road_blocked')], max_days=22,
     )
 
 

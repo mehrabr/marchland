@@ -98,11 +98,14 @@ def run_march(scn, seed, trace=None):
         if trace and dis_dead > 0:
             trace.record_event('disease', float(day), count=int(dis_dead))
         sick = max(sick - int(ns*0.2) - r.binomial(max(sick,0),0.06), 0)
-        for ev_day, extra in scn.get('detours', []):
+        for detour_entry in scn.get('detours', []):
+            ev_day = detour_entry[0]
+            extra = detour_entry[1]
+            reason = detour_entry[2] if len(detour_entry) > 2 else ''
             if day == ev_day:
                 dist += extra; log.append(('detour',day,extra))
                 if trace:
-                    trace.record_event('detour', float(day), extra=int(extra))
+                    trace.record_event('detour', float(day), extra=int(extra), reason=reason)
         miles += done
     if trace:
         trace.record_event('arrived' if miles >= dist else 'failed', float(day),

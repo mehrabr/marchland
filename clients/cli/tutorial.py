@@ -563,6 +563,11 @@ def _operations_phase(state: TutorialState, io: _IO) -> None:
             show_help(arg if arg else None, io)
 
         elif cmd in ('done', 'quit', 'q'):
+            if state.march_result is None:
+                io.print("  You have not yet marched. Close operations? [yes/no]:")
+                answer = io.input("> ").strip().lower()
+                if answer not in ('yes', 'y'):
+                    continue
             io.print("  Operations concluded.")
             state.done = True
 
