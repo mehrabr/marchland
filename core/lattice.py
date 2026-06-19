@@ -23,6 +23,7 @@ M2: optional Trace object (pass trace=<Trace> to __init__). Records every death 
 """
 import numpy as np
 from .constants import BATTLE_A as A, BATTLE_DT as DT
+from .meaning import build_meaning_state
 
 # Phase codes (per-cohort)
 PHASE_ADVANCE, PHASE_CONTACT, PHASE_REFORMING = 0, 1, 2
@@ -86,6 +87,11 @@ class Battle:
         self._is_assault_wave = np.array([bool(C[ci_k].get('assault_wave', 0)) for ci_k in ci], bool)
         # REFORMING attacker agents from the previous tick: excluded from density so defenders see foe=0
         self._in_reform_prev = np.zeros(self.N, bool)
+        # M7.2: institution-of-meaning state (None if scenario has no meanings)
+        self._meaning_state = build_meaning_state(scn)
+        # M7.0: convergent horn encirclement (pre-compute lateral grid offsets)
+        self._convergent_horn = bool(scn.get('convergent_horn', False))
+        self._horn_multiplier = float(scn.get('horn_kill_multiplier', 2.5))
 
     def bern(self, p, key='k'):
         p = np.clip(p, 0, .95)
@@ -308,10 +314,45 @@ class Battle:
         # appraisal
         w = A['w']; press = self.fear[cx,cy]/6.0
         nold = np.array([self.leader[s] for s in (0,1)])
-        cue = (w['downs']*np.clip(fdn/6.0,0,1.5) + w['rout']*np.clip(frt/4.0,0,1.5)
-               + w['expose']*np.clip(load,0,2) + w['behind']*np.clip(foeB/4,0,1.5)*(~self.allr)
-               + w['fat']*self.fat + w['press']*np.clip(press,0,1.5)
-               + w['banner']*(~nold[self.side]).astype(np.float32)
+        # Raw cue computation (universal substrate — unchanged by culture)
+        raw_downs  = np.clip(fdn/6.0,0,1.5)
+        raw_rout   = np.clip(frt/4.0,0,1.5)
+        raw_expose = np.clip(load,0,2)
+        raw_behind = np.clip(foeB/4,0,1.5)*(~self.allr)
+        raw_fat    = self.fat
+        raw_press  = np.clip(press,0,1.5)
+        raw_banner = (~nold[self.side]).astype(np.float32)
+        # M7.2: apply per-cohort institution-of-meaning transform to raw cues
+        # Transforms scale/shift cue values per cohort before the universal threshold.
+        # The threshold itself is NEVER changed — only the inputs.
+        if self._meaning_state is not None:
+            for k in range(len(self.C)):
+                mask = self.ci == k
+                if not mask.any():
+                    continue
+                raw = dict(
+                    downs=float(raw_downs[mask].mean()),
+                    rout=float(raw_rout[mask].mean()),
+                    expose=float(raw_expose[mask].mean()),
+                    behind=float(raw_behind[mask].mean()),
+                    fat=float(raw_fat[mask].mean()),
+                    press=float(raw_press[mask].mean()),
+                )
+                tx = self._meaning_state.transform_cues(k, raw)
+                # Apply deltas back to per-agent arrays (cohort-uniform transform)
+                for name, arr, raw_val in [
+                    ('downs',  raw_downs,  raw['downs']),
+                    ('rout',   raw_rout,   raw['rout']),
+                    ('expose', raw_expose, raw['expose']),
+                    ('behind', raw_behind, raw['behind']),
+                    ('fat',    raw_fat,    raw['fat']),
+                    ('press',  raw_press,  raw['press']),
+                ]:
+                    arr[mask] = arr[mask] * (tx[name] / raw_val if raw_val != 0.0 else 1.0)
+        cue = (w['downs']*raw_downs + w['rout']*raw_rout
+               + w['expose']*raw_expose + w['behind']*raw_behind
+               + w['fat']*raw_fat + w['press']*raw_press
+               + w['banner']*raw_banner
                - 1.1*self.belief - 0.3*np.clip((own-1)*0.2,0,0.8))
         if not self.det:
             flee = std & ~self.mounted & (cue > self.th)
@@ -372,7 +413,26 @@ class Battle:
                     foeN = np.where(self.side==0, cnt[1][cx,cy], cnt[0][cx,cy])
                     catch = runm & (foeN>0)
                     inten = scn.get('pursuit_intensity',{}).get(1-s,0.6)
-                    kp = catch & self.bern(np.where(catch,0.02*inten*DT,0), 'pk')
+                    # M7.0: convergent horn encirclement bonus.
+                    # When convergent_horn=True, fugitives caught with foe density BOTH
+                    # ahead AND on lateral flanks (±4 cells) are killed at a higher rate.
+                    # This closes the Isandlwana defender_dead_frac miss without touching
+                    # any Class A constant — it is a geometric property of the scenario.
+                    if self._convergent_horn and catch.any():
+                        flank_y_off = 4  # cells to sample for lateral foe presence
+                        cy_f = np.clip(cy + flank_y_off, 0, self.H-1)
+                        cy_b = np.clip(cy - flank_y_off, 0, self.H-1)
+                        foe_flank_cnt = (
+                            np.where(self.side==0,
+                                     cnt[1][cx, cy_f] + cnt[1][cx, cy_b],
+                                     cnt[0][cx, cy_f] + cnt[0][cx, cy_b])
+                        )
+                        encircled = catch & (foe_flank_cnt > 0)
+                        rate_enc  = np.where(encircled, 0.02*inten*self._horn_multiplier*DT, 0)
+                        rate_norm = np.where(catch & ~encircled, 0.02*inten*DT, 0)
+                        kp = (catch & self.bern(rate_enc + rate_norm, 'pk'))
+                    else:
+                        kp = catch & self.bern(np.where(catch,0.02*inten*DT,0), 'pk')
                     capp = scn.get('cap_p',{}).get(s,0.0)
                     cp = catch & ~kp & (self.bern(np.where(catch,capp*0.02*DT,0), 'cp'))
                     self.cap |= cp
@@ -459,6 +519,20 @@ class Battle:
         np.add.at(self.deadG[0], (cx[self.side[died]==0],cy[self.side[died]==0]), 1)
         np.add.at(self.deadG[1], (cx[self.side[died]==1],cy[self.side[died]==1]), 1)
         self.alive[died] = False
+
+    def sever_meaning_carrier(self, carrier_id: str) -> list:
+        """M7.2: called when a named carrier (officer/cult/paymaster) is lost.
+
+        Breaks all meanings carried by that entity and returns their ids.
+        No-op if this battle has no MeaningState.
+        """
+        if self._meaning_state is None:
+            return []
+        broken = self._meaning_state.sever_carrier(carrier_id)
+        if broken and self.trace is not None:
+            self.trace.record_event('meaning_severed', self.t,
+                                    carrier=carrier_id, meanings=broken)
+        return broken
 
     def run(self, ticks=1600):
         end = None

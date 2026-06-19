@@ -185,6 +185,64 @@ TARGETS = {
         ),
         "note": "Trace integrity: every death must cite 'melee'|'volley'|'pursuit'|'cavalry'",
     },
+
+    # ---- M7.0: Carrhae ----
+    "carrhae.win": {
+        "description": "Parthians win all seeds",
+        "grade": "A",
+        "check": lambda results: all(r["win"] == 1 for r in results),
+        "note": "M7.0: Horse-archer encirclement; convergent_horn + ranged dominance",
+    },
+    "carrhae.roman_dead_frac": {
+        "description": "Roman dead fraction in [0.50, 0.85]",
+        "grade": "B",
+        "check": lambda results: 0.50 <= _median_dead_frac(results, 0) <= 0.85,
+        "note": "M7.0: Historical ~65%; convergent horn drives kill-share into band",
+    },
+
+    # ---- M7.0: Sphacteria ----
+    "sphacteria.win": {
+        "description": "Athenians win majority of seeds",
+        "grade": "A",
+        "check": lambda results: sum(r["win"] == 1 for r in results) > len(results) / 2,
+        "note": "M7.0: Convergent encirclement + ranged dominance over Spartan phalanx",
+    },
+    "sphacteria.spartan_dead_frac": {
+        "description": "Spartan dead fraction in [0.45, 0.80]",
+        "grade": "B",
+        "check": lambda results: 0.45 <= _median_dead_frac(results, 0) <= 0.80,
+        "note": "M7.0: Historical ~70% Spartan dead; 120 survivors captured",
+    },
+
+    # ---- M7.5: Winter quarters dissolution ----
+    "winter_quarters.effective_frac": {
+        "description": "Effective fraction < 0.50 after 60-day unpaid idle siege",
+        "grade": "A",
+        "check": lambda results: all(r.get("effective_frac", 1.0) < 0.50 for r in results),
+        "note": "M7.5: Army dissolves without battle — tracked receipts (idle+hunger+arrears)",
+    },
+    "winter_quarters.no_combat_events": {
+        "description": "No combat events in trace",
+        "grade": "A",
+        "check": lambda results: all(len(r.get("combat_events", [])) == 0 for r in results),
+        "note": "M7.5: VN discipline — dissolution must come from receipts, not combat",
+    },
+    "winter_quarters.sentiment_max": {
+        "description": "Sentiment penetration reaches >= 0.60 in majority of seeds",
+        "grade": "B",
+        "check": lambda results: sum(
+            r.get("sentiment_max", 0) >= 0.60 for r in results
+        ) > len(results) / 2,
+        "note": "M7.5: 'cursed_campaign' sentiment spreads past flip threshold",
+    },
+
+    # ---- M7.0: Isandlwana line fix (convergent horn) ----
+    "isandlwana_line.defender_dead_frac_m7": {
+        "description": "British dead fraction in [0.50, 0.90] with convergent_horn",
+        "grade": "B",
+        "check": lambda results: 0.50 <= _median_dead_frac(results, 0) <= 0.90,
+        "note": "M7.0 FIX: convergent_horn closes the known miss (was 40%; target 50-90%)",
+    },
 }
 
 

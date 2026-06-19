@@ -12,7 +12,8 @@ import numpy as np
 from core.lattice import Battle
 from core.siege import run_siege
 from core.march import run_march
-from core.scenarios import SCN_BATTLE, SCN_MARCH, SCN_SIEGE
+from core.scenarios import SCN_BATTLE, SCN_MARCH, SCN_SIEGE, SCN_DISSOLUTION
+from core.sentiment import run_dissolution
 from core.chain import run_chain_1415
 from battery.targets import TARGETS
 
@@ -45,6 +46,8 @@ def run_scenario(name, seeds=12):
         return [run_siege(SCN_SIEGE[name](), s) for s in range(seeds)]
     if name in SCN_CHAIN:
         return [SCN_CHAIN[name](s) for s in range(seeds)]
+    if name in SCN_DISSOLUTION:
+        return [run_dissolution(SCN_DISSOLUTION[name](), s) for s in range(seeds)]
     raise ValueError(f"Unknown scenario: {name}")
 
 
@@ -59,7 +62,7 @@ def _grade_color(grade, passed):
 def grade_all(seeds=12):
     # collect scenario results
     cache = {}
-    for name in list(SCN_BATTLE) + list(SCN_MARCH) + list(SCN_SIEGE) + list(SCN_CHAIN):
+    for name in list(SCN_BATTLE) + list(SCN_MARCH) + list(SCN_SIEGE) + list(SCN_CHAIN) + list(SCN_DISSOLUTION):
         cache[name] = run_scenario(name, seeds)
 
     rows = []
@@ -99,6 +102,11 @@ def _resolve_scenario(key):
         "assault.breach_vs_fresh": "breach_fresh",
         "assault.breach_vs_starved": "breach_starved",
         "chain_1415.": "chain_1415",
+        # M7.0 steppe scenarios
+        "carrhae.": "carrhae",
+        "sphacteria.": "sphacteria",
+        # M7.5 dissolution
+        "winter_quarters.": "winter_quarters",
     }
     for prefix, scn in prefix_map.items():
         if key.startswith(prefix):

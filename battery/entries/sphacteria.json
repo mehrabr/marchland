@@ -1,0 +1,4 @@
+{
+  "sphacteria.win": ["Athenians win majority of seeds", "A", "M7.0: Convergent encirclement + ranged dominance; Spartan honor-culture resists but cannot break out", "8/12", true],
+  "sphacteria.spartan_dead_frac": [[0.45, 0.80], "B", "M7.0: Historical ~70% Spartan dead; encirclement fires once all landing parties arrive", 0.60, true]
+}

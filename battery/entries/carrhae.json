@@ -1,0 +1,4 @@
+{
+  "carrhae.win": ["Parthians win all seeds", "A", "M7.0: Horse-archer encirclement; Roman square cannot break out against cavalry volley + convergent horn", "12/12", true],
+  "carrhae.roman_dead_frac": [[0.50, 0.85], "B", "M7.0: Historical ~65% Roman dead; convergent horn drives kill-share into band", 0.65, true]
+}

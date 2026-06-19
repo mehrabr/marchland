@@ -1,0 +1,5 @@
+{
+  "winter_quarters.effective_frac": [[0.0, 0.50], "A", "M7.5: Army loses >50% effective strength in 60-day unpaid idle siege — dissolution without battle", 0.35, true],
+  "winter_quarters.no_combat_events": ["no melee/volley/pursuit events in trace", "A", "M7.5: VN discipline — dissolution is purely from sentiment/tracked receipts, not combat", true, true],
+  "winter_quarters.sentiment_max": [[0.60, 1.0], "B", "M7.5: 'cursed_campaign' sentiment penetrates majority of cohorts above flip threshold", 0.75, true]
+}

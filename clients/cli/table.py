@@ -1,4 +1,4 @@
-"""MARCHLAND CLI: campaign Table renderer (M4).
+"""MARCHLAND CLI: campaign Table renderer (M4/M7.6).
 
 Renders the player's information state as a formatted text view. Each entity
 is shown at its believed position with an uncertainty glyph:
@@ -10,10 +10,15 @@ is shown at its believed position with an uncertainty glyph:
 
 Dispatches in transit are shown with → and an ETA.
 
+M7.6: Sentiment renders as a visible field spreading across the player's own
+cohorts, in the same uncertainty grammar. True mood may require a present,
+trusted officer's report. Intervention levers (issued as in-flight orders
+through the M7.A queue) are shown alongside each cohort's sentiment state.
+
 This module depends only on core.* and the stdlib; it has no Rich dependency
 so it can emit plain text even when Rich is unavailable.
 """
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple  # noqa: F401
 
 from core.stations import Station, STATIONS, StationState
 
@@ -72,6 +77,7 @@ def render_table(
     pending_orders: List[Any],  # List[PendingOrder] from season.py
     *,
     io: Any,                  # _IO compatible
+    sentiment_summary: Optional[List[Any]] = None,  # M7.6: SentimentField.cohort_summary()
 ) -> None:
     """Print the campaign Table to the given io object."""
     spec = STATIONS[station_state.station]
@@ -109,6 +115,11 @@ def render_table(
         if station_state.station == Station.CAMP and station_state.spec.latency_days > 0:
             io.print(f"  (At CAMP — orders take {station_state.spec.latency_days} days to reach the field.)")
 
+    # -- M7.6: Sentiment field (if any) --
+    if sentiment_summary:
+        render_sentiment(sentiment_summary, spec.lottery_per_day,
+                         io=io)
+
     # -- Station properties --
     io.print()
     io.print(f"  Station lottery: {spec.lottery_per_day:.1%}/day   "
@@ -139,6 +150,82 @@ def _print_known(visible: Dict[str, Dict], io: Any) -> None:
             glyph = _confidence_glyph(conf)
             glabel = _glyph_label(glyph)
             io.print(f"    {glyph} {label} — {claim}: {value}  [{glabel}, {conf:.0%}]")
+
+
+# ------------------------------------------------------------------
+# M7.6: Sentiment field rendering
+
+# Penetration glyphs (mirrors the confidence uncertainty grammar)
+_SENTIMENT_GLYPHS = [
+    (0.70, '!', 'flipped  — meaning may be broken'),
+    (0.45, '▲', 'high     — spreading fast'),
+    (0.20, '~', 'present  — seed established'),
+    (0.05, '?', 'rumoured — early trace'),
+    (0.00, '·', 'clear    — no penetration'),
+]
+
+
+def _sentiment_glyph(penetration: float) -> tuple:
+    for threshold, glyph, label in _SENTIMENT_GLYPHS:
+        if penetration >= threshold:
+            return glyph, label
+    return '·', 'clear'
+
+
+def render_sentiment(sentiment_summary: list, station_authority: float,
+                     *, io: Any) -> None:
+    """M7.6: Render the sentiment field for the current cohort graph.
+
+    sentiment_summary: list of dicts from SentimentField.cohort_summary()
+    station_authority: player's current command authority (0–1); affects visibility
+
+    The player sees true sentiment only if a trusted officer (authority ≥ 0.7)
+    is with the cohort. Otherwise they see the uncertainty glyph '?'.
+
+    Intervention levers are shown alongside each cohort:
+      dispatch_officer  — send a trusted officer to counter the rumour
+      pay_arrears       — clear arrears to counter 'we_are_abandoned'
+      rest_idle         — order rest to reduce idle-time rumour pressure
+      break_up          — disband the cohort before it infects neighbours
+      small_victory     — seed 'follow_a_winner' with an easy win
+    """
+    if not sentiment_summary:
+        return
+
+    io.print()
+    io.print("  SENTIMENT FIELD:")
+    can_see_true = station_authority >= 0.70
+
+    for row in sentiment_summary:
+        cid = row['cohort_id']
+        auth = row.get('authority', 0.5)
+        flipped = row.get('flipped', [])
+
+        # Build sentiment line per known sentiment id
+        sent_parts = []
+        for sid, penetration in [(k, v) for k, v in row.items()
+                                 if k not in ('cohort_id', 'authority', 'flipped')
+                                 and isinstance(v, float)]:
+            if can_see_true or auth >= 0.70:
+                glyph, glabel = _sentiment_glyph(penetration)
+                sent_parts.append(f"{sid}: {glyph}({penetration:.0%})")
+            else:
+                sent_parts.append(f"{sid}: ?  [officer absent — mood unknown]")
+
+        sent_str = '  '.join(sent_parts) if sent_parts else 'no active sentiments'
+
+        flip_str = f"  [MEANING FLIPPED: {', '.join(flipped)}]" if flipped else ''
+        io.print(f"    Cohort {cid}  auth={auth:.0%}  {sent_str}{flip_str}")
+
+    # Intervention levers
+    io.print()
+    io.print("  SENTIMENT LEVERS (issue as in-flight orders via the M7.A queue):")
+    io.print("    dispatch_officer  — send a trusted officer to counter a rumour")
+    io.print("    pay_arrears       — clear pay arrears (counters 'we_are_abandoned')")
+    io.print("    rest_idle         — order rest to reduce rumour-mill pressure")
+    io.print("    small_victory     — seed 'follow_a_winner' with an easy engagement")
+    io.print("    break_up          — disband a cohort before it infects neighbours")
+    io.print()
 
 
 # ------------------------------------------------------------------

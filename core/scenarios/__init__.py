@@ -1,8 +1,11 @@
-"""Unified scenario registry. Import SCN_BATTLE, SCN_MARCH, or SCN_SIEGE.
+"""Unified scenario registry. Import SCN_BATTLE, SCN_MARCH, SCN_SIEGE, or SCN_DISSOLUTION.
 
 Chain runners (SCN_CHAIN) live in battery/runner.py to avoid a circular import:
 core.chain imports core.scenarios.* which triggers this __init__, which would
 re-import core.chain before it has finished loading.
+
+M7.0 additions: carrhae, sphacteria (convergent_horn encirclement scenarios)
+M7.5 addition: winter_quarters (dissolution-without-battle scenario)
 """
 from .agincourt import agincourt, agincourt_marched
 from .hastings import hastings, hastings_drilled, hastings_p1, hastings_p2
@@ -10,6 +13,9 @@ from .isandlwana import isandlwana_line, isandlwana_square
 from .sieges import escalade_fresh, escalade_starved, breach_fresh, breach_starved
 from .marches import agincourt_march, danube_1704, niemen_1812, gedrosia_325, sherman_1864
 from .harfleur import harfleur, harfleur_relief25
+from .carrhae import carrhae
+from .sphacteria import sphacteria
+from .winter_quarters import winter_quarters
 
 SCN_BATTLE = dict(
     agincourt=agincourt,
@@ -24,6 +30,8 @@ SCN_BATTLE = dict(
     escalade_starved=escalade_starved,
     breach_fresh=breach_fresh,
     breach_starved=breach_starved,
+    carrhae=carrhae,
+    sphacteria=sphacteria,
 )
 
 SCN_MARCH = dict(
@@ -37,4 +45,8 @@ SCN_MARCH = dict(
 SCN_SIEGE = dict(
     harfleur=harfleur,
     harfleur_relief25=harfleur_relief25,
+)
+
+SCN_DISSOLUTION = dict(
+    winter_quarters=winter_quarters,
 )

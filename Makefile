@@ -1,6 +1,6 @@
 PYTHON ?= $(shell command -v python3 || echo python)
 
-.PHONY: test battery receipts-check chronicle
+.PHONY: test battery receipts-check chronicle sensitivity
 
 test:
 	$(PYTHON) -m pytest tests/ -v
@@ -13,3 +13,6 @@ receipts-check:
 
 chronicle:
 	$(PYTHON) -m clients.cli $(name) --seeds 12
+
+sensitivity:
+	$(PYTHON) -m tools.sensitivity --seeds 4

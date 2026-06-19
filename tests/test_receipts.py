@@ -50,8 +50,8 @@ def test_real_scenarios_clean():
             hits = scan_file(path)
             if hits:
                 any_found = True
-                for lineno, text in hits:
-                    print(f"  VIOLATION {path}:{lineno}: {text.strip()}")
+                for lineno, text, rule in hits:
+                    print(f"  VIOLATION[{rule}] {path}:{lineno}: {text.strip()}")
     assert not any_found, "Real scenario/culture files contain quality coefficients — spec violation"
 
 
@@ -63,7 +63,7 @@ def test_detects_quality_field(tmp_path):
     """)
     hits = scan_file(path)
     assert hits, "Expected violation for 'quality' field"
-    assert any("quality" in text for _, text in hits)
+    assert any("quality" in text for _, text, _rule in hits)
 
 
 def test_detects_morale_bonus(tmp_path):
@@ -104,7 +104,7 @@ def test_violation_reports_line_number(tmp_path):
     path.write_text(content)
     hits = scan_file(path)
     assert hits, "Expected a violation"
-    lineno, _ = hits[0]
+    lineno, _text, _rule = hits[0]
     assert lineno == 2, f"Expected violation on line 2, got {lineno}"
 
 

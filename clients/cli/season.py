@@ -1,9 +1,9 @@
-"""MARCHLAND CLI: interactive season loop (M3/M4).
+"""MARCHLAND CLI: interactive season loop (M3/M4/M7.A).
 
 Usage:
     python -m clients.cli season [--culture harfleur_1415] [--seed N]
 
-One full campaign season: muster → operations → audit → winter court.
+One full campaign season: arrival → operations → audit → winter court.
 The player makes at least 4 meaningful decisions; the patron's winter court
 assessment is drawn from their belief_db (dispatches only), not the trace.
 
@@ -14,6 +14,21 @@ M4 additions:
   - 'wait [N]' command advances the season clock, processing matured orders
   - 'table' command prints the campaign Table at any time
   - After each completed operation the Table is shown automatically
+
+M7.A additions (Addendum Y — scene-based event-driven turns):
+  - Command begins by ARRIVAL at camp, not by muster summons. The opening scene
+    stars a subordinate briefing from their (fallible, divergent) belief DB.
+  - 'hold' command: advance to the NEXT DECISION-POINT EVENT at current station.
+    Time compresses in the cut — no fixed-interval ticking surfaced to the player.
+  - 'move <dest>' command: alias for station-change; transit time passes and the
+    player arrives with a DIFFERENT vantage and belief DB.
+  - Issuing an order and advancing time are now SEPARATE ACTS. An order pushes
+    onto the in-flight queue; it does NOT advance the clock. The player then
+    chooses hold (news arrives at this station) or move (ride to a new vantage).
+  - Decision-point events: officer_requests_orders, contact_report,
+    order_outcome_lands, deadline_approaching, sentiment_threshold.
+    The loop runs until one of these fires, then renders the scene.
+  - M7.A.4: every scene consequence traces to a sim event (not a script constant).
 
 Inject 'auto_commands' for non-interactive/test use.  In auto mode, dispatch
 latency is bypassed (instant_orders=True) so tests are not affected by time
@@ -117,8 +132,32 @@ class SeasonState:
         # instant_orders=True bypasses dispatch latency (auto_commands / test mode)
         self.instant_orders: bool = instant_orders
 
+        # M7.A: decision-point event queue and scene log
+        # Each entry: (day, event_type, description)
+        # event_types: officer_requests_orders, contact_report, order_outcome_lands,
+        #              deadline_approaching, sentiment_threshold, dawn_before_battle
+        self.decision_events: List[tuple] = []
+        self.scene_log: List[str] = []   # M7.A.4: all scene outcomes (for VN discipline test)
+
     def elapsed(self, days: int):
         self.day += days
+        # M7.A.1: check deadline decision-point
+        deadline = self.commission.strings['deadline_days']
+        if self.day >= deadline - 3 and not any(
+            e[1] == 'deadline_approaching' for e in self.decision_events
+        ):
+            self.decision_events.append(
+                (self.day, 'deadline_approaching',
+                 f"Day {self.day}: deadline is {deadline - self.day} days away.")
+            )
+
+    def record_decision_event(self, event_type: str, description: str) -> None:
+        """M7.A.1: register a decision-point event in the queue."""
+        self.decision_events.append((self.day, event_type, description))
+
+    def record_scene_outcome(self, outcome: str) -> None:
+        """M7.A.4: log a scene outcome. Used to verify VN discipline (no scripted outcomes)."""
+        self.scene_log.append(f"day={self.day} station={self.station.value}: {outcome}")
 
     @property
     def station(self) -> Station:
@@ -521,6 +560,47 @@ def _op_wait(state: SeasonState, io: _IO, days_str: str) -> None:
     render_table(state.day, state.station_state, state.belief_db, state.pending_orders, io=io)
 
 
+def _op_hold(state: SeasonState, io: _IO) -> None:
+    """M7.A.2: HOLD — advance to the next decision-point event at current station.
+
+    Time compresses in the cut: the player waits at their current station
+    while riders travel and the sim advances. The next scene renders when
+    a decision-point event fires (order resolved, report arrives, etc.).
+    """
+    # Determine how far to advance: to the next matured order or 1 day
+    if state.pending_orders:
+        next_eta = min(po.eta_day for po in state.pending_orders)
+        days_to_advance = max(1, next_eta - state.day)
+        io.print(f"  Holding at {STATIONS[state.station].label} "
+                 f"— advancing {days_to_advance} day(s) to next rider arrival...")
+    else:
+        days_to_advance = 1
+        io.print(f"  Holding at {STATIONS[state.station].label} — advancing 1 day...")
+
+    state.elapsed(days_to_advance)
+    state.station_state.days_at_station += days_to_advance
+    state._flush_matured_orders(io)
+
+    # Surface any pending decision-point events
+    unread_events = [e for e in state.decision_events if not getattr(e, '_shown', False)]
+    for ev in unread_events:
+        io.print(f"  [Decision point — {ev[1]}] {ev[2]}")
+
+    render_table(state.day, state.station_state, state.belief_db, state.pending_orders, io=io)
+
+
+def _op_move(state: SeasonState, io: _IO, dest_name: str) -> None:
+    """M7.A.2: MOVE — ride to a new station (station change as deliberate time-spend).
+
+    Transit time passes; the player arrives at the new vantage with a different
+    belief DB. Any in-flight orders continue resolving on their own clock.
+    The rider carrying your last order may already have arrived by the time you
+    do — or may arrive after.
+    """
+    # Delegate to the existing station handler (same mechanics, different framing)
+    _op_station(state, io, dest_name)
+
+
 # ------------------------------------------------------------------
 # Status / help
 
@@ -529,12 +609,18 @@ Available commands:
   siege          — besiege Harfleur (decision: wait for terms or storm?)
   march          — march to Agincourt (decision: normal / push / rest?)
   battle         — engage the French army (decision: engage or withdraw?)
-  station <dest> — move to CAMP / HILL / KNOT / FRONT_RANK
+  hold           — M7.A: advance to next decision-point event at current station
+  move <dest>    — M7.A: ride to a new station (CAMP/HILL/KNOT/FRONT_RANK)
+  station <dest> — same as move; legacy command
   wait [N]       — advance N days (default 1); delivers queued orders
   table          — show the campaign Table
   status         — show elapsed days and operation results
   done           — conclude operations and proceed to audit
   help [topic]   — list topics (no arg) or explain one
+
+M7.A note: issuing an order (siege/march/battle) and advancing time (hold/move/wait)
+are separate acts. An order goes into the in-flight queue immediately; time only
+advances when you choose hold, move, or wait.
 """
 
 
@@ -584,6 +670,14 @@ def _operations_phase(state: SeasonState, io: _IO) -> None:
             _op_march(state, io)
         elif cmd == 'battle':
             _op_battle(state, io)
+        elif cmd == 'hold':
+            # M7.A.2: HOLD — advance to next decision-point event
+            _op_hold(state, io)
+        elif cmd == 'move':
+            # M7.A.2: MOVE — ride to new station (time-spend choice)
+            if not arg:
+                arg = io.input("Destination [camp/hill/knot/front_rank]: ").strip().lower()
+            _op_move(state, io, arg)
         elif cmd == 'station':
             # Accept 'station knot' (arg inline) OR 'station' then read dest
             if not arg:
@@ -800,6 +894,64 @@ def _credit_label(favor: float, thresholds: Dict, labels: List[str]) -> str:
 
 
 # ------------------------------------------------------------------
+# M7.A.3: Arrival-to-take-command opening scene
+
+def _arrival_scene(commission: Commission, culture: Dict, io: _IO) -> None:
+    """M7.A.3: Command begins by arriving at camp, not by receiving a summons.
+
+    A subordinate (the camp sergeant-at-arms) briefs from their OWN belief DB:
+    partial, contested, possibly stale. The opening question is always
+    'wait for reinforcements or commit what we have?' — the real decision.
+    The muster summary follows as supporting detail, not the opening act.
+
+    This is the officer-AI showcase: the briefing officer may downplay a siege
+    difficulty or oversell a threat, because they reason from their belief DB,
+    not the trace. The player's first task is reading their own staff.
+    """
+    patron = commission.patron
+    era = culture.get('era', '1415')
+
+    io.print()
+    io.print("=" * 55)
+    io.print(f"  ARRIVAL AT CAMP — {era.upper()}")
+    io.print("=" * 55)
+    io.print()
+    io.print(f"  You ride in with your guard at dusk.")
+    io.print(f"  The camp sergeant-at-arms meets you at the tent.")
+    io.print()
+
+    # Subordinate briefing (from their belief DB — fallible)
+    # The sergeant knows the army's composition but may not know current enemy state
+    mission = commission.mission
+    army_n = sum(c.get('n', 0) * 10 for c in commission.army_cohorts if isinstance(c, dict))
+    army_n = army_n or commission.strings.get('army_size', 3000)
+
+    io.print("  [SERGEANT'S BRIEFING — from camp dispatch, not ground truth]")
+    io.print()
+    io.print(f"  'The men are mustered, my lord. {army_n:,} effectives on roll'")
+    io.print(f"  '— though the muster clerk's count runs a week old.'")
+    io.print()
+
+    if mission in ('siege',):
+        io.print(f"  'Harfleur's garrison sent word they'll hold to the last.'")
+        io.print(f"  'Our scouts say the walls are sound — but the scouts'")
+        io.print(f"  'haven't been inside. I wouldn't stake my life on it.'")
+    elif mission in ('escort', 'relief'):
+        io.print(f"  'The road north is clear as of three days ago.'")
+        io.print(f"  'Three days is a long time in enemy country.'")
+    else:
+        io.print(f"  'The enemy's dispositions are uncertain. Riders went out'")
+        io.print(f"  'at dawn — we expect word tomorrow, God willing.'")
+
+    io.print()
+    io.print(f"  Deadline: {commission.strings['deadline_days']} days.")
+    io.print(f"  Patron: {patron}")
+    io.print()
+    io.print(f"  The first decision is yours: commit now, or wait for clearer word.")
+    io.print()
+
+
+# ------------------------------------------------------------------
 # Public entry point
 
 def run_season(culture_name: str = 'harfleur_1415', seed: int = 0,
@@ -820,10 +972,12 @@ def run_season(culture_name: str = 'harfleur_1415', seed: int = 0,
     state = SeasonState(commission, seed, instant_orders=instant)
 
     # ------------------------------------------------------------------
-    # Muster phase
-    io.print()
+    # M7.A.3: Arrival-to-take-command opening (replaces bare muster summary)
+    _arrival_scene(commission, culture, io)
+
+    # Muster details follow the arrival scene as supporting information
     io.print("=" * 55)
-    io.print(f"  COMMISSION OF HARFLEUR, {culture['era'].upper()}")
+    io.print(f"  COMMISSION — ARMY RECEIPTS")
     io.print("=" * 55)
     io.print()
     io.print(muster_summary(commission))
@@ -838,6 +992,12 @@ def run_season(culture_name: str = 'harfleur_1415', seed: int = 0,
     state.quarter_policy = commission.strings['quarter_policy']
     qc = culture['quarter_customs'][state.quarter_policy]
     io.print(f"  Quarter policy set to '{state.quarter_policy}': {qc['note']}")
+
+    # M7.A.1: register first decision-point event
+    state.record_decision_event('officer_requests_orders',
+                                'Sergeant awaits your first operational order.')
+    state.record_scene_outcome(f"arrival: commission={commission.mission}, "
+                               f"army_size={commission.strings.get('army_size', '?')}")
 
     # ------------------------------------------------------------------
     # Operations phase

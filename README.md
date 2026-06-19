@@ -106,7 +106,7 @@ After a battle or season, the chronicle generator produces a prose account — o
 
 ```
 /core            sim library (no engine dependency)
-  lattice.py       BP-Lattice battle resolver
+  lattice.py       BP-Lattice battle resolver (M7.0: convergent horn; M7.2: meaning hook)
   siege.py         siege clock (dual clocks, summons-and-terms)
   march.py         march model (column physics, entropy flows)
   chain.py         chain protocol: siege → march → battle field mappings
@@ -115,8 +115,11 @@ After a battle or season, the chronicle generator produces a prose account — o
   commission.py    commission generator
   belief_db.py     patron and player belief databases
   missions.py      mission taxonomy and objective predicates
+  meaning.py       institution-of-meaning interpretation layer (M7.2)
+  sentiment.py     sentiment drift field + dissolution runner (M7.4/M7.5)
+  officer.py       officer model with belief-DB-driven decisions (M7.7)
   cultures/        culture data files (doctrine, station prices, career frame)
-  scenarios/       battle scenario data files
+  scenarios/       battle scenario data files (incl. carrhae, sphacteria, winter_quarters)
 
 /battery         validation runner and CI gate
   runner.py        runs all scenarios, grades against calibration.json
@@ -127,14 +130,15 @@ After a battle or season, the chronicle generator produces a prose account — o
 /clients
   cli/             the dispatch game (text interface)
     main.py          entry point: tutorial / 1415 / season
-    season.py        interactive season loop
+    season.py        interactive season loop (M7.A: scene-based, HOLD/MOVE)
     tutorial.py      tutorial mission with parenthetical receipts
-    table.py         Table renderer with uncertainty glyphs
+    table.py         Table renderer: uncertainty glyphs + sentiment field (M7.6)
     covenant.py      covenant screen (printed once at game start)
     help.py          in-game help: `help march`, `help receipts`, `help trace`
 
 /tools
-  receipts_grep.py  CI audit: fails if quality coefficients found in data files
+  receipts_grep.py  CI audit: quality coefficients + meaning/sentiment audit rules (M7.3)
+  sensitivity.py    class-A constant perturbation harness (M7.1)
   ensemble.py       K-seed runner; gates "near-run" chronicle language on seed splits
   chronicle.py      trace → prose with citations
 
@@ -158,20 +162,81 @@ make test            # pytest suite
 make battery         # full validation battery (must stay green)
 make receipts-check  # spec violation audit (exits 1 if quality coefficients found)
 make chronicle name=1415   # run chain and print chronicle
+make sensitivity     # class-A constant perturbation report (M7.1; never a gate)
 ```
 
 ### Validation battery
 
 Every grade-A target is a pytest assertion. Grade-B/C targets are printed as findings, not failures. Every mechanic change must rerun the battery. New scenarios ship with new battery entries.
 
+**Current status: 14/14 grade-A targets green.**
+
 Current known misses (open ledger, not bugs):
-- `Isandlwana defender_dead_frac`: 40% vs target 50–90% — needs converging-horn pursuit
-- `Hastings pre-break deaths`: resolved at M1; baseline updated
+- `Isandlwana line defender_dead_frac`: ~40% vs target 50–90% — convergent horn fires at Carrhae/Sphacteria; Isandlwana line still needs terrain-trap pursuit (post-M7)
+- `Sphacteria spartan_dead_frac`: lower end of range; light-troop ranged dynamics need BP-Front fitting
+- `Assault breach_vs_starved_carried`: garrison not weak enough without caloric collapse mechanic
 - `Harfleur storm_launched`: 13% vs "rare" — flagged, not tuned
 
 ### Constants
 
 Class A constants in `core/constants.py` are frozen. Changing one requires a battery run and a note in `results/`. They are identical for every human — this is Law 1.
+
+---
+
+## M7 features (current milestone)
+
+### Convergent-horn pursuit (M7.0)
+
+When a scenario sets `convergent_horn: true`, fugitives caught between lateral foe columns take an amplified kill rate during pursuit. This closes the Isandlwana dead-fraction miss at Carrhae and Sphacteria. Two new scenarios: **Carrhae 53BC** (horse-archer encirclement) and **Sphacteria 425BC** (Spartan garrison surrounded by light troops).
+
+### Sensitivity harness (M7.1)
+
+`python -m tools.sensitivity` perturbs every class-A constant ±30% and re-runs the battery. Outputs a *load-bearing vs decorative* table: load-bearing constants fail at least one grade-A target when perturbed; decorative ones don't. Wired as `make sensitivity` (report only — never a CI gate).
+
+### Institution-of-meaning (M7.2)
+
+`core/meaning.py` — a cohort's reading of events depends on what institution it belongs to (oath, paymaster, officer cadre). A meaning **transforms raw appraisal cues** before they reach the universal threshold — never changing the threshold itself. Meanings have `failure_conditions` (required non-empty — Bret's law enforces this in code). When the carrier falls, the meaning breaks and the cohort reverts to raw cues.
+
+### Audit rules (M7.3)
+
+`tools/receipts_grep.py` now enforces two additional rules:
+- **Bret's law**: any meaning with `failure_conditions: []` fails CI (an essence cannot be destroyed; a meaning without a destruction path is an essence).
+- **Olleus's law**: any sentiment transmission term not in `TRACKED_RECEIPTS` fails CI (no free contagion constants — all spread must trace to a march-model receipt).
+
+### Sentiment drift (M7.4/M7.5)
+
+`core/sentiment.py` — a scalar penetration field spreading across cohorts at campaign-day resolution. Transmission only from registered receipts: `idle, hunger, arrears, bond, disease, officers, cohesion`. Sentiment is the *transition function* — it changes which institution a cohort inhabits; the institution changes how events are read; the universal threshold is never touched.
+
+**Dissolution-without-battle** (M7.5): the `winter_quarters` scenario drives an army to <50% effective strength through unpaid idle quartering alone. No combat events fire. Battery grade-A.
+
+### Scene-based turns (M7.A)
+
+The season loop now runs on **decision-point events** rather than fixed intervals:
+- `hold` — advance to the next decision-point event (order outcome, rider arrives, deadline imminent)
+- `move <dest>` — ride to a new station; transit time passes and your vantage changes
+- Issuing an order and advancing time are **separate acts** — an order pushes onto the in-flight queue; time only advances when you choose `hold`, `move`, or `wait`
+- Command begins with an **arrival scene**: a subordinate briefs from their own (fallible, partial) belief DB before you see the muster summary
+
+### Sentiment on the Table (M7.6)
+
+The Table renderer shows the sentiment field for your own cohorts with the same uncertainty grammar as other beliefs:
+
+```
+!  flipped  (meaning may be broken)
+▲  high     (spreading fast)
+~  present  (seed established)
+?  rumoured (early trace)
+·  clear    (no penetration)
+```
+
+Intervention levers shown alongside: `dispatch_officer`, `pay_arrears`, `rest_idle`, `small_victory`, `break_up`.
+
+### Officer model (M7.7)
+
+`core/officer.py` — subordinate commanders reason from their own belief DB, not from the trace or HQ's view. Three battery-verified behaviors:
+- **refuses suicidal**: holds when believed foe density ≥ 4.0 regardless of order received
+- **exploits flank**: initiates a flank action when their belief DB shows foe coverage < 20%
+- **misreads dispatch**: interprets "advance when favorable" as "advance now" when their (possibly wrong) belief DB shows conditions favorable
 
 ---
 
