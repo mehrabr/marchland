@@ -35,7 +35,7 @@ COVENANT_TEXT = """\
     · Show you the cause of every death, if you look.
       Type  help trace     at any prompt.
 
-══════════════════════════════════════════════════════════"""
+╚══════════════════════════════════════════════════════════╝"""
 
 
 def print_covenant(io=None) -> None:

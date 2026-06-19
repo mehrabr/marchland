@@ -408,10 +408,23 @@ def _print_winter_court(state: TutorialState, io: _IO) -> None:
         io.print("  Lord Camoys offers you a commission for the next season.")
     elif favor >= thresholds.get('neutral', 0.40):
         io.print("  Your service is noted. A commission may come — in time.")
-        io.print("  [To improve: send accurate dispatches; achieve the mission objective]")
+        if mission_believed and qp == 'free_rein':
+            io.print("  [To improve: choose 'strict' or 'liberal' quarter policy"
+                     " — 'free_rein' cost -0.15 patron favor]")
+        elif not mission_believed:
+            io.print("  [To improve: ensure the march arrives and any battle is won;"
+                     " both check 'arrived=True']")
+        else:
+            io.print("  [To improve: send accurate dispatches; achieve the mission objective]")
     else:
         io.print("  Lord Camoys is silent on the matter of next season.")
-        io.print("  [To improve: ensure 'arrived=True' in your march dispatch]")
+        if not mission_believed:
+            io.print("  [To improve: ensure 'arrived=True' in your march dispatch]")
+        elif qp == 'free_rein':
+            io.print("  [To improve: choose 'strict' or 'liberal' quarter policy"
+                     " — 'free_rein' cost -0.15 patron favor]")
+        else:
+            io.print("  [To improve: ensure 'arrived=True' in your march dispatch]")
 
     io.print()
     io.print("  Tutorial complete.")
@@ -421,6 +434,37 @@ def _print_winter_court(state: TutorialState, io: _IO) -> None:
     io.print("    Chain demo with chronicles:                  python -m clients.cli 1415")
     io.print("    Mechanic help at any time:                   help <topic>")
     io.print()
+
+
+# ------------------------------------------------------------------
+# Quarter policy prompt (extracted so tests can call directly)
+
+def _print_quarter_options(io: _IO) -> None:
+    """Print the three quarter policy options with their favor modifiers."""
+    io.print("  strict     → patron pleased; men grumble (patron favor +0.10)")
+    io.print("  liberal    → the custom of the age; balanced (no modifier)")
+    io.print("  free_rein  → men happy; patron will hear of it (patron favor -0.15)")
+
+
+def _ask_quarter_policy(commission: 'Commission', culture: Dict, io: _IO) -> str:
+    """Prompt for quarter policy, redisplaying options on invalid input.
+
+    Returns the chosen policy string.
+    """
+    io.print("  DECISION 1: Quarter policy")
+    _print_quarter_options(io)
+    io.print()
+    while True:
+        raw = io.input("  Choose quarter policy [strict/liberal/free_rein]: ").strip().lower()
+        if raw in ('strict', 'liberal', 'free_rein'):
+            apply_quarter_policy(commission, raw)
+            return raw
+        if not raw:
+            # Empty string (auto_commands exhausted) — keep default
+            return commission.strings['quarter_policy']
+        io.print("  (Not recognised. Choose from:)")
+        _print_quarter_options(io)
+        io.print()
 
 
 # ------------------------------------------------------------------
@@ -558,21 +602,15 @@ def run_tutorial(seed: int = 0,
     print_covenant(io)
     io.print("  Press Enter to begin, or type a command ('help' for topics).")
     io.input("")
+    io.print()
+    io.print("── BEGIN ──")
+    io.print()
 
     # -- Muster
     _print_annotated_muster(commission, io)
 
     # Decision 1: quarter policy
-    io.print("  DECISION 1: Quarter policy")
-    io.print("  strict     → patron pleased; men grumble (patron favor +0.10)")
-    io.print("  liberal    → the custom of the age; balanced (no modifier)")
-    io.print("  free_rein  → men happy; patron will hear of it (patron favor -0.15)")
-    io.print()
-    raw_policy = io.input("  Choose quarter policy [strict/liberal/free_rein]: ").strip().lower()
-    if raw_policy in ('strict', 'liberal', 'free_rein'):
-        apply_quarter_policy(commission, raw_policy)
-    else:
-        io.print(f"  ('{raw_policy}' not recognised; keeping 'liberal')")
+    _ask_quarter_policy(commission, culture, io)
     state.quarter_policy = commission.strings['quarter_policy']
     qc = culture['quarter_customs'][state.quarter_policy]
     io.print(f"  Quarter set to '{state.quarter_policy}': {qc['note']}")

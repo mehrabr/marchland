@@ -159,17 +159,54 @@ class SeasonState:
 
 
 # ------------------------------------------------------------------
+# Quarter policy prompt helpers (extracted for testability)
+
+def _print_quarter_options(io: _IO) -> None:
+    """Print the three quarter policy options with favor modifiers."""
+    io.print("  strict     → patron pleased; men grumble (patron favor +0.10)")
+    io.print("  liberal    → controlled contribution; balanced (no modifier)")
+    io.print("  free_rein  → full plunder; men content, patron wary (patron favor -0.15)")
+
+
+def _ask_quarter_policy(commission: 'Commission', culture: Dict, io: _IO) -> str:
+    """Prompt for quarter policy, redisplaying options on invalid input.
+
+    Returns the chosen policy string.
+    """
+    io.print("  Quarter policy options:")
+    _print_quarter_options(io)
+    io.print()
+    while True:
+        raw = io.input("Choose quarter policy [strict/liberal/free_rein]: ").strip().lower()
+        if raw in ('strict', 'liberal', 'free_rein'):
+            apply_quarter_policy(commission, raw)
+            return raw
+        if not raw:
+            return commission.strings['quarter_policy']
+        io.print("  (Not recognised — choose from:)")
+        _print_quarter_options(io)
+        io.print()
+
+
+# ------------------------------------------------------------------
 # Dispatch helpers
 
 _DISPATCH_PROMPT = (
     "Send dispatch to patron? [accurate/partial/none]: "
 )
 
+_DISPATCH_EXPLANATION = """\
+  Dispatch options:
+    accurate → all claims sent, 90% confidence (casualties included)
+    partial  → non-casualty claims only; battle partial omits outcome (70% confidence)
+    none     → patron learns nothing of this phase"""
+
 
 def _ask_dispatch(state: SeasonState, phase: str, io: _IO,
                   full_claims: Dict[str, Any],
                   partial_claims: Optional[Dict[str, Any]] = None) -> None:
     """Ask player how to report this phase; update belief_db accordingly."""
+    io.print(_DISPATCH_EXPLANATION)
     choice = io.input(_DISPATCH_PROMPT).strip().lower()
     if choice == 'none':
         io.print("  (No dispatch sent — patron learns nothing of this phase.)")
@@ -709,6 +746,15 @@ def _print_court_scene(state: SeasonState, io: _IO,
         if qp == 'free_rein':
             io.print(f"  Complaints of excess quarter have reached the court.")
 
+    # Siege tactic prose: storm vs wait differentiation
+    if state.siege_result:
+        siege_outcome = state.siege_result.get('outcome', '')
+        if state.siege_tactic == 'storm' and siege_outcome == 'NEGOTIATED':
+            io.print("  The storm was pressed but the garrison yielded on terms"
+                     " — costly, but the place is taken.")
+        elif state.siege_tactic == 'storm' and siege_outcome == 'STORMED_sack':
+            io.print("  The place was taken by storm. The sack will trouble some at court.")
+
     if qc.get('note'):
         io.print(f"  [{qc['note']}]")
 
@@ -775,13 +821,7 @@ def run_season(culture_name: str = 'harfleur_1415', seed: int = 0,
     io.print()
 
     # Decision 1: quarter policy
-    policy_raw = io.input(
-        "Choose quarter policy [strict/liberal/free_rein]: "
-    ).strip().lower()
-    if policy_raw in ('strict', 'liberal', 'free_rein'):
-        apply_quarter_policy(commission, policy_raw)
-    else:
-        io.print(f"  (Unrecognised policy '{policy_raw}'; keeping 'liberal'.)")
+    _ask_quarter_policy(commission, culture, io)
     state.quarter_policy = commission.strings['quarter_policy']
     qc = culture['quarter_customs'][state.quarter_policy]
     io.print(f"  Quarter policy set to '{state.quarter_policy}': {qc['note']}")
