@@ -18,7 +18,7 @@ Receipts:
   officers=0.55: officers demoralized (D receipt: pay arrears cascade)
   rumor_pressure=12: high idle-time rumor mill (C receipt: idle days)
 """
-from core.march import scenario as march_scenario
+from ..march import scenario as march_scenario
 
 
 def winter_quarters():

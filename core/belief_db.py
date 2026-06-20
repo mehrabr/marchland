@@ -17,7 +17,7 @@ Schema: {phase: {claim: (value, confidence, source)}}
 """
 from typing import Any, Dict, Optional, Tuple
 
-from core.stations import Station, station_can_see
+from .stations import Station, station_can_see
 
 
 class BeliefDB:

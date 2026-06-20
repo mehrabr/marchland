@@ -1,9 +1,16 @@
-"""MARCHLAND core: officer model (M7.7).
+"""MARCHLAND core: officer model (M7.7) — DESIGN SPIKE, not wired into simulation.
 
 Officers reason from their OWN belief DB — never from the trace. Their
 mistakes come from bad information, not from pathfinding or scripted errors.
 
-Battery coverage (M7.7 acceptance criteria):
+STATUS: This module has no callers in lattice.py, chain.py, or season.py.
+The three battery behaviors (refuses_suicidal, exploits_flank, misreads_dispatch)
+are verified in isolation (tests/test_officer.py) but do not yet change simulation
+outcomes. Next step: wire `Battle state → officer belief DB → process_order → cohort
+action` so divergence actually affects the battle. Until then this is a verified
+design spike, not a shipped feature.
+
+Battery coverage (M7.7 acceptance criteria — isolated tests only):
   - officer_refuses_suicidal: flank commander holds when believed foe density
     exceeds suicidal threshold, regardless of the order received
   - officer_exploits_flank: officer advances unprompted when their belief DB
@@ -19,7 +26,7 @@ drama.
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from core.belief_db import BeliefDB
+from .belief_db import BeliefDB
 
 
 # ---------------------------------------------------------------------------

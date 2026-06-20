@@ -1,6 +1,6 @@
 # MARCHLAND
 
-A historical battle and campaign simulation. You command armies across career seasons — muster, march, siege, battle, winter court. Every outcome replays bit-identically from the same seed. Every death has a cause you can read.
+A historical battle and campaign simulation. You command armies across career seasons — muster, march, siege, battle, winter court. Every outcome replays from the same seed within the pinned runtime (`numpy==2.4.6`, same CPU architecture). Every death has a cause you can read.
 
 ---
 
@@ -10,7 +10,7 @@ A historical battle and campaign simulation. You command armies across career se
 
 Three consequences that shape everything in this game:
 
-1. **No quality coefficients.** No per-people or per-unit quality modifier exists anywhere. Every difference between forces must have a *receipt* — a changeable in-world fact (drill-days, calories, armor purchased, roads built, bonds formed). An automated audit enforces this on every data file. The loaded-dice test: a probability becomes a stat the moment the dice are loaded differently per people.
+1. **No quality coefficients.** No per-people or per-unit quality modifier exists anywhere. Every difference between forces must have a *receipt* — a changeable in-world fact (drill-days, calories, armor purchased, roads built, bonds formed). An automated audit (`make receipts-check`) enforces forbidden field names on every data file; per-cohort scalars (`err`, `belief`, `disc`) are authored with an in-world justification comment in each scenario file. The loaded-dice test: a probability becomes a stat the moment the dice are loaded differently per people.
 
 2. **Every death has a cause.** The simulation keeps a trace: every casualty records time, killer, cause (`melee · volley · pursuit · thirst · disease`), and location. Every rout records the appraisal cues that triggered it. The trace is the only omniscient object in the game; everything else — your Table, your patron's belief DB, the chronicle — is a partial view.
 
@@ -35,7 +35,7 @@ python -m clients.cli 1415 --seeds 12
 python -m clients.cli season --culture harfleur_1415
 ```
 
-**Requirements:** Python 3.11+, numpy, rich
+**Requirements:** Python 3.14.x, numpy==2.4.6, rich~=15.0
 
 ---
 
@@ -52,7 +52,7 @@ Muster  →  Operations  →  Patron Audit  →  Winter Court
 **Operations.** You issue orders. Each operation runs the appropriate simulation model:
 - *March*: the Day Layer — column physics, water, food, straggle, desertion. Pace buys time with order.
 - *Siege*: the dual-clock model — besieger disease races town hunger and breach progress. Summons-and-terms decides the outcome; the garrison has its own calculus.
-- *Battle*: the BP-Lattice resolver — density fields, appraisal cues, percolation failure. Formations break when their coverage loses its giant component, not when they hit zero.
+- *Battle*: the BP-Lattice resolver — density fields, appraisal cues, fractional-standing break. A formation breaks when its standing strength falls below its `break_frac` threshold, triggering pursuit.
 
 **Patron Audit.** Your patron evaluates the campaign from their belief DB. They know what your riders told them. If a dispatch was wrong, late, or lost, the audit reflects that — injustice both ways.
 
@@ -117,7 +117,7 @@ After a battle or season, the chronicle generator produces a prose account — o
   missions.py      mission taxonomy and objective predicates
   meaning.py       institution-of-meaning interpretation layer (M7.2)
   sentiment.py     sentiment drift field + dissolution runner (M7.4/M7.5)
-  officer.py       officer model with belief-DB-driven decisions (M7.7)
+  officer.py       officer model with belief-DB-driven decisions (M7.7 — design spike, not yet wired into simulation)
   cultures/        culture data files (doctrine, station prices, career frame)
   scenarios/       battle scenario data files (incl. carrhae, sphacteria, winter_quarters)
 
@@ -142,8 +142,8 @@ After a battle or season, the chronicle generator produces a prose account — o
   ensemble.py       K-seed runner; gates "near-run" chronicle language on seed splits
   chronicle.py      trace → prose with citations
 
-/code            validated reference implementation (do not delete)
-  marchland_toy.py  original BP-Lattice resolver
+/code            frozen historical prototype (candidate golden-output oracle)
+  marchland_toy.py  original BP-Lattice resolver (diverged from core/ at M1+)
   siege_clock.py    original siege clock
   march_model.py    original march model v2
 
@@ -231,9 +231,9 @@ The Table renderer shows the sentiment field for your own cohorts with the same 
 
 Intervention levers shown alongside: `dispatch_officer`, `pay_arrears`, `rest_idle`, `small_victory`, `break_up`.
 
-### Officer model (M7.7)
+### Officer model (M7.7) — design spike
 
-`core/officer.py` — subordinate commanders reason from their own belief DB, not from the trace or HQ's view. Three battery-verified behaviors:
+`core/officer.py` — subordinate commanders reason from their own belief DB, not from the trace or HQ's view. Three behaviors are battery-verified in isolation, but the module has no callers in the simulation yet — it does not yet change battle outcomes. Integration (`Battle state → officer belief DB → process_order → cohort action`) is the next step.
 - **refuses suicidal**: holds when believed foe density ≥ 4.0 regardless of order received
 - **exploits flank**: initiates a flank action when their belief DB shows foe coverage < 20%
 - **misreads dispatch**: interprets "advance when favorable" as "advance now" when their (possibly wrong) belief DB shows conditions favorable
@@ -245,5 +245,5 @@ Intervention levers shown alongside: `dispatch_officer`, `pay_arrears`, `rest_id
 - [00-BIBLE.md](00-BIBLE.md) — the complete buildable specification: all 10 Laws, architecture, frozen constants, schemas, the battery, full game design, presentation, and the milestone plan
 - [01-essay-the-peasants-who-wouldnt-run.md](01-essay-the-peasants-who-wouldnt-run.md) — the argument for why this approach to historical simulation
 - [docs/](docs/) — twenty-one design addenda (A–U), the reasoning behind each system
-- [code/](code/) — the validated reference implementation, the porting targets for `core/`
+- [code/](code/) — a frozen historical prototype; `core/` has diverged (M1+) and is now the canonical implementation
 - [results/](results/) — acceptance baselines with source grades and notes on every miss

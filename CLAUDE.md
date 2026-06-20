@@ -13,7 +13,7 @@ A historical battle/campaign simulation game. The player commands armies across 
 1. **No essences.** No per-people quality coefficient anywhere. Class A constants are identical for every human. The receipts-grep CI check enforces this.
 2. **Receipts.** Every number that differs between forces answers: what in-world action changes it? (Classes: A=bodies · B=technology · C=campaign state · D=institutions · E=trained capacities)
 3. **Chance proposes; structure disposes.** Events sample from mechanistic hazards; propagation is structural.
-4. **Hard to predict, easy to explain.** Every casualty has a causal trace. Every battle replays bit-identically from (inputs, seed).
+4. **Hard to predict, easy to explain.** Every casualty has a causal trace. Every battle replays from (inputs, seed) within the pinned runtime (`numpy==2.4.6`, same CPU architecture). Cross-arch bit-identity is not guaranteed.
 5. **Casualties live in the pursuit.** Pre-break deaths ≤ ~10% is a battery target.
 6. **You command; you do not pilot.** Orders travel at rider speed; units appraise them.
 7. **No eye without a body.** Camera knowledge = seat knowledge.
@@ -310,14 +310,20 @@ make test
 ## Dependency Stack
 
 ```
-Python 3.11+
-numpy          # lattice and march models
-pytest         # test suite
-hypothesis     # property tests
-rich           # CLI rendering (Table, glyphs)
+Python 3.14.*    (pinned; numpy Generator streams are not guaranteed across Python minor versions)
+numpy==2.4.6     # exact pin: Generator streams not guaranteed across versions (NEP 19)
+rich~=15.0       # rendering only; never affects sim outcomes
+pytest           # test suite
+hypothesis       # property tests (tests/test_properties.py)
 ```
 
 No game engine dependency in `core/`. Clients import `core`; `core` imports nothing from clients.
+
+---
+
+## Documentation Sync Rule
+
+Any change to a Law, a frozen constant, the reproducibility envelope, or a named mechanism (break rule, pursuit model, phase machine) **requires a matching README/BIBLE edit in the same commit**. Docs and code diverging is a correctness bug, not a style issue.
 
 ---
 
