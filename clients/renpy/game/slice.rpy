@@ -63,13 +63,13 @@ label slice_start:
     ## Three choices → one battle parameter.
     ## 'hold': stakes active, cavalry balks. 'open': no stakes, cavalry sweeps.
     menu:
-        "Hold the ridge — stand and receive."
+        "Hold the ridge — stand and receive.":
             python:
                 slice_order = 'hold'
-        "Refuse — withdraw over the bridge."
+        "Refuse — withdraw over the bridge.":
             python:
                 slice_order = 'refuse'
-        "Offer open battle — advance to the flat."
+        "Offer open battle — advance to the flat.":
             python:
                 slice_order = 'open'
 
@@ -93,10 +93,10 @@ label slice_start:
 
 label slice_wait_choice:
     menu:
-        "Hold on the Hill [wider view, latency 1 — the order is already in flight]."
+        "Hold on the Hill [wider view, latency 1 — the order is already in flight].":
             python:
                 slice_wait = 'hill'
-        "Ride to the Knot [latency 0 from there — closer to the line, risk lottery]."
+        "Ride to the Knot [latency 0 from there — closer to the line, risk lottery].":
             python:
                 slice_wait = 'knot'
 

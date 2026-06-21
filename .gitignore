@@ -9,3 +9,16 @@ build/
 venv/
 .pytest_cache/
 *.egg
+
+# PyInstaller
+build/
+dist/
+marchland_main.py
+*.spec
+
+# Ren'Py compile artifacts
+clients/renpy/game/cache/
+clients/renpy/game/**/*.rpyc
+clients/renpy/game/python-packages/
+clients/renpy/game/saves/
+clients/renpy/*.txt
