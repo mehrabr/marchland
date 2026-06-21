@@ -332,6 +332,59 @@ def trace_for_archive(trace_dict: Dict) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Vertical slice: single-battle run with cavalry parameter
+
+def run_slice_battle(seed: int, order: str) -> Dict[str, Any]:
+    """Run the Agincourt battle for the vertical slice.
+
+    order: 'hold' | 'open'
+      'hold'  → standard scenario: stakes at x=170, cavalry balks (horse_balk event)
+      'open'  → stakes key removed: cavalry rides through, threatens archers
+
+    The cavalry IS real in both cases; 'hold' accounts for it, 'open' ignores it.
+    Returns {result, trace (composed 4-tuple events), chronicle (str), archive (dict)}.
+    """
+    from tools.chronicle import generate_chronicle
+
+    scn = agincourt()
+
+    if order == 'open':
+        # Remove stake line so cavalry is not blocked; English advance onto flat
+        scn = {k: v for k, v in scn.items() if k != 'stakes_x'}
+
+    # 'hold' uses agincourt() as-is: stakes active, cavalry will balk
+
+    tr = Trace(phase='battle', scenario=f'agincourt_slice_{order}', seed=seed)
+    result = Battle(scn, seed, trace=tr).run()
+
+    # Build composed trace (4-tuple events) for generate_chronicle and trace_for_archive
+    composed: Dict[str, Any] = {
+        'phases': ['battle'],
+        'scenarios': [tr.scenario],
+        'seed': seed,
+        'deaths': [
+            dict(t=d.t, agent_id=d.agent_id, cause=d.cause,
+                 killer_cohort=d.killer_cohort, location=d.location, phase='battle')
+            for d in tr.deaths
+        ],
+        'routs': [
+            dict(t=r.t, agent_id=r.agent_id, appraisal=r.appraisal, phase='battle')
+            for r in tr.routs
+        ],
+        'events': [(ev[0], ev[1], ev[2], 'battle') for ev in tr.events],
+    }
+    chronicle = generate_chronicle(composed)
+    archive = trace_for_archive(composed)
+
+    return _strip_numpy({
+        'result': result,
+        'trace': composed,
+        'chronicle': chronicle,
+        'archive': archive,
+    })
+
+
+# ---------------------------------------------------------------------------
 # Pending order serialization
 
 def pending_order_for_renpy(po: Any) -> Dict:

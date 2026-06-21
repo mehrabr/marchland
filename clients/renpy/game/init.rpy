@@ -10,6 +10,7 @@ init python:
     from clients.renpy.bridge import (
         run_chain,
         run_operation,
+        run_slice_battle,
         save_capsule_from_state,
         capsule_to_dict,
         belief_view_for_table,

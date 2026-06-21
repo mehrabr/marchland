@@ -135,6 +135,12 @@ After a battle or season, the chronicle generator produces a prose account — o
     table.py         Table renderer: uncertainty glyphs + sentiment field (M7.6)
     covenant.py      covenant screen (printed once at game start)
     help.py          in-game help: `help march`, `help receipts`, `help trace`
+  renpy/           Ren'Py visual novel client
+    bridge.py        Layer 2 adapter — the only thing that crosses sim→skin
+    game/
+      init.rpy       Ren'Py init: bridge import + global rollback config
+      marchland.rpy  full season loop (siege → march → battle)
+      slice.rpy      vertical slice entry point (label slice_start)
 
 /tools
   receipts_grep.py  CI audit: quality coefficients + meaning/sentiment audit rules (M7.3)
@@ -180,6 +186,43 @@ Current known misses (open ledger, not bugs):
 ### Constants
 
 Class A constants in `core/constants.py` are frozen. Changing one requires a battery run and a note in `results/`. They are identical for every human — this is Law 1.
+
+---
+
+## Ren'Py client and the vertical slice
+
+The Ren'Py client (`clients/renpy/`) is a visual novel skin over the same headless sim. Nothing in `core/` knows Ren'Py exists. The integration has three layers:
+
+```
+Layer 3  game/*.rpy         scenes, menus, screens, rollback config
+Layer 2  bridge.py          plain serializable dicts — the only thing that crosses
+Layer 1  core/              sim, RNG, battery — imports nothing from Ren'Py
+```
+
+Every public function in `bridge.py` returns plain Python types (dicts, lists, ints, strs, floats). No numpy scalars, no sim objects. Ren'Py pickles save state from `SaveCapsule`; battles reconstruct from their seed rather than persisting RNG state. The bridge test suite (`tests/test_renpy_bridge.py`, 99 assertions) verifies layer isolation, numpy transience, and JSON serializability.
+
+**Model A (recommended):** vendor numpy 2.4.6 (`cp312` wheel) into Ren'Py's bundled Python 3.12 interpreter and `import core.chain` inside `init python:`. Re-pin to 3.12 and re-bless golden hashes. **Model B (fallback):** run the sim as a subprocess, exchange JSON over a pipe — bit-identical to CI but requires IPC plumbing. The layer contract is identical either way.
+
+### Vertical slice — "One Order, One Battle, One Truth"
+
+**Entry point:** `label slice_start` in `clients/renpy/game/slice.rpy`.
+
+The slice is a falsifiable experiment, not a demo. **Hypothesis under test:** *command-under-uncertainty — partial knowledge, one irrevocable order delayed by geography, living with the consequence, a record you must see through — is compelling in ten minutes.*
+
+The loop in seven steps (spec: `docs/marchland-vertical-slice.md`):
+
+1. **Table** — three belief markers: `*` your line (confirmed), `~` enemy column (scouted, 2h old), `?` horse beyond the wood (rumored). The cavalry is the crux.
+2. **Contact report** — captain portrait; one brief, two unknowns.
+3. **Irrevocable order** — three choices; `renpy.block_rollback()` fires on commit:
+   - *Hold the ridge* — stakes active, cavalry balks (`horse_balk` event fires, chronicled)
+   - *Refuse — withdraw over the bridge* — no battle, trace holds an absence
+   - *Offer open battle* — stakes absent, cavalry rides through
+4. **In-flight wait** — HOLD on the Hill (wider view, latency 1) or MOVE to the Knot (latency 0, leader-risk lottery). Not dead time: the order is already irrevocable.
+5. **Headless battle** — `run_slice_battle(seed, order)` in the bridge; deterministic from `(scenario, seed)`.
+6. **Chronicle** — the tapestry's prose: sympathetic emphasis, correct outcome, wrong mechanism.
+7. **Reveal** — toggle to the raw death-certs. Pursuit deaths outnumber pre-break deaths. The captain died in the ditch, after the line was already gone. The chronicle's drama was imprecise about the mechanism. **Hard to predict, easy to explain, recorded imperfectly.**
+
+It **passes** if a naive playtester hesitates before committing, reacts to the outcome, and re-reads at the toggle. It **fails** if the order feels arbitrary, the wait reads as dead time, or the scrub reads as a gimmick. Failure means the core loop needs rethinking before building the season, the officer integration, or a line of art — and that is the entire value of the slice.
 
 ---
 
@@ -242,8 +285,10 @@ Intervention levers shown alongside: `dispatch_officer`, `pay_arrears`, `rest_id
 
 ## Going deeper
 
-- [00-BIBLE.md](00-BIBLE.md) — the complete buildable specification: all 10 Laws, architecture, frozen constants, schemas, the battery, full game design, presentation, and the milestone plan
-- [01-essay-the-peasants-who-wouldnt-run.md](01-essay-the-peasants-who-wouldnt-run.md) — the argument for why this approach to historical simulation
+- [00-BIBLE.md](docs/00-BIBLE.md) — the complete buildable specification: all 10 Laws, architecture, frozen constants, schemas, the battery, full game design, presentation, and the milestone plan
+- [01-essay-the-peasants-who-wouldnt-run.md](docs/01-essay-the-peasants-who-wouldnt-run.md) — the argument for why this approach to historical simulation
+- [docs/marchland-vertical-slice.md](docs/marchland-vertical-slice.md) — vertical slice spec: hypothesis, ruthless scope, 7-step walkthrough, build order, pass/fail criteria
+- [docs/marchland-renpy-integration.md](docs/marchland-renpy-integration.md) — Ren'Py integration architecture: three-layer contract, Model A/B, save discipline, rollback partition
 - [docs/](docs/) — twenty-one design addenda (A–U), the reasoning behind each system
 - [code/](code/) — a frozen historical prototype; `core/` has diverged (M1+) and is now the canonical implementation
 - [results/](results/) — acceptance baselines with source grades and notes on every miss
