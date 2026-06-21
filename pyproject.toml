@@ -5,7 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "marchland"
 version = "0.1.0"
-requires-python = "==3.14.*"
+requires-python = "==3.12.*"  # Model A (Ren'Py 8.5.3 bundled interpreter); was ==3.14.*
+                              # Re-bless GOLDEN_HASH + CHAIN_GOLDEN_HASH after switching:
+                              #   python3 -c "from tests.test_reproducibility import *; ..."
+                              # (see regeneration commands in tests/test_reproducibility.py)
 dependencies = [
     "numpy==2.4.6",   # exact: Generator streams not guaranteed across versions (NEP 19)
     "rich~=15.0",     # rendering only; never affects sim outcomes — compatible-release pin is fine

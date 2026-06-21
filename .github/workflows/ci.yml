@@ -12,7 +12,9 @@ jobs:
 
     strategy:
       matrix:
-        numpy-version: ["2.4.6", "2.5.0"]
+        # Off-pin leg (2.5.0rc1): surfaces stream changes; allowed to fail.
+        # Use rc1 (the newest real release) until 2.5.0 final ships.
+        numpy-version: ["2.4.6", "2.5.0rc1"]
       fail-fast: false
 
     # Off-pin leg is allowed to fail — it exists to surface stream changes, not block merges.
@@ -21,10 +23,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.14
+      # Model A (Ren'Py 8.5.3 bundled interpreter): pin to 3.12.
+      # If GOLDEN_HASH / CHAIN_GOLDEN_HASH fail here, regenerate under cp312
+      # using the commands in tests/test_reproducibility.py and commit updated hashes.
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install dependencies

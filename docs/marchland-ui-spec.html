@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MARCHLAND — Graphical UI Spec: The Table, the Window, the Dive</title>
+<style>
+  :root{
+    --ink:#2a2620; --muted:#6b6253; --faint:#9a9078; --line:#d8d0ba; --paper:#f5f1e6;
+    --field:#e6e2d3; --field2:#d8d0ba;
+    --amber:#BA7517; --amber-bg:#FAEEDA; --amber-tx:#633806;
+    --blue:#185FA5; --blue-bg:#E6F1FB; --blue-tx:#0C447C;
+    --teal:#0F6E56; --teal-bg:#E1F5EE; --teal-tx:#04342C;
+    --gray:#5F5E5A; --gray-bg:#F1EFE8; --gray-tx:#2C2C2A;
+    --crimson:#a6342b; --indigo:#33408f; --slate:#6b6f73;
+    --ok:#3B6D11; --info:#185FA5;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --ink:#e9e3d4; --muted:#b3a98f; --faint:#857c66; --line:#3a352b; --paper:#1a1813;
+           --field:#23211b; --field2:#2c2922; }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.65; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px; margin:0 auto; padding:40px 24px 80px}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+  header.doc{border-bottom:2px solid var(--ink); padding-bottom:18px; margin-bottom:8px}
+  .eyebrow{font:11px/1 ui-monospace,Menlo,monospace; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); margin:0 0 8px}
+  h1{font-size:30px; font-weight:600; letter-spacing:.2px; margin:0 0 6px}
+  .lede{font-size:16px; color:var(--muted); margin:6px 0 0; max-width:62ch}
+  h2{font-size:21px; font-weight:600; margin:44px 0 4px; padding-top:18px; border-top:0.5px solid var(--line)}
+  h2 .n{color:var(--faint); font-weight:400; margin-right:10px}
+  h3{font-size:15px; font-weight:600; margin:26px 0 6px; color:var(--ink)}
+  p{margin:10px 0; max-width:68ch}
+  .fig{margin:22px 0 8px; background:var(--field); border:0.5px solid var(--line); border-radius:12px; padding:20px}
+  .figcap{font:12px/1.5 ui-monospace,Menlo,monospace; color:var(--muted); margin:8px 2px 0; text-transform:uppercase; letter-spacing:.5px}
+  svg{display:block; width:100%; height:auto}
+  .t{font:500 14px/1 -apple-system,sans-serif; fill:var(--ink)}
+  .ts{font:400 12px/1 -apple-system,sans-serif; fill:var(--muted)}
+  .law{background:var(--field); border-left:3px solid var(--amber); border-radius:0; padding:12px 16px; margin:18px 0; font-size:15px}
+  .law b{color:var(--amber-tx)}
+  @media (prefers-color-scheme: dark){ .law b{color:var(--amber)} }
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:18px 0}
+  @media(max-width:680px){ .grid2{grid-template-columns:1fr} }
+  .card{background:var(--field); border:0.5px solid var(--line); border-radius:10px; padding:16px}
+  .card h4{margin:0 0 8px; font-size:14px; font-weight:600}
+  .card p{font-size:13.5px; color:var(--muted); margin:6px 0}
+  ul.tight{margin:8px 0; padding-left:20px} ul.tight li{margin:5px 0; font-size:14.5px}
+  .pill{display:inline-block; font:11px/1 ui-monospace,Menlo,monospace; padding:3px 8px; border-radius:5px; letter-spacing:.5px}
+  footer{margin-top:56px; padding-top:16px; border-top:0.5px solid var(--line); font:12px/1.7 ui-monospace,Menlo,monospace; color:var(--faint)}
+  /* mockup bits */
+  .screen{background:var(--field); border-radius:12px; padding:18px; margin:18px 0}
+  .scr-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px; padding-bottom:10px; border-bottom:0.5px solid var(--line)}
+  .scr-title{font-size:16px; font-weight:600} .scr-sub{font-size:13px; color:var(--faint)}
+  .belief-row{display:flex; align-items:center; gap:10px; margin:11px 0; font-size:14.5px}
+  .gl{font-family:ui-monospace,Menlo,monospace; width:16px; text-align:center; font-size:15px}
+  .note{font-size:12px; color:var(--faint)}
+  .inner{background:var(--paper); border:0.5px solid var(--line); border-radius:8px; padding:16px}
+  .btn{display:block; width:100%; text-align:left; font:13px/1 -apple-system,sans-serif; padding:10px 12px;
+    border:0.5px solid var(--line); border-radius:8px; background:transparent; color:var(--ink); margin:8px 0; cursor:default}
+  @media print{ body{background:#fff} .wrap{max-width:100%} h2{break-after:avoid} .fig,.screen,.law{break-inside:avoid} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <p class="eyebrow">MARCHLAND · Addendum U, realized · High-level UI specification</p>
+  <h1>The Table, the Window, and the Dive</h1>
+  <p class="lede">One simulation, two ways of looking at it. The Table renders what you <em>know</em>; the Window renders what you would <em>see</em>; the Dive is the gated transition between them. This document is the high-level spec for the graphical interface.</p>
+</header>
+
+<h2><span class="n">1</span>The principle</h2>
+<p>There is a single headless simulation, and the only object inside it that knows everything is the <span class="mono">trace</span>. Every surface the player touches is a <em>partial view</em> of that truth. The interface is built so that the player never confuses the two — and so that the gap between what is known and what is true becomes the texture of command rather than a failure of presentation.</p>
+
+<div class="fig">
+<svg viewBox="0 0 820 470" role="img" aria-label="Architecture: the simulation core produces a trace; the belief database drives the Table; a fixed seat drives the Window; the Dive transitions between them.">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+  <rect x="270" y="24" width="280" height="58" rx="9" fill="var(--gray-bg)" stroke="var(--gray)" stroke-width="0.5"/>
+  <text class="t" x="410" y="48" text-anchor="middle" style="fill:var(--gray-tx)">Headless simulation core</text>
+  <text class="ts" x="410" y="68" text-anchor="middle">the only omniscient object: the trace</text>
+
+  <line x1="350" y1="82" x2="250" y2="128" stroke="var(--gray)" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="470" y1="82" x2="570" y2="128" stroke="var(--gray)" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="80" y="130" width="340" height="60" rx="9" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="0.5"/>
+  <text class="t" x="250" y="154" text-anchor="middle" style="fill:var(--amber-tx)">Your belief database</text>
+  <text class="ts" x="250" y="174" text-anchor="middle">partial · latent · possibly stale</text>
+
+  <rect x="400" y="130" width="340" height="60" rx="9" fill="var(--blue-bg)" stroke="var(--blue)" stroke-width="0.5"/>
+  <text class="t" x="570" y="154" text-anchor="middle" style="fill:var(--blue-tx)">A fixed command seat</text>
+  <text class="ts" x="570" y="174" text-anchor="middle">front rank · knot · hill · camp</text>
+
+  <line x1="250" y1="190" x2="250" y2="236" stroke="var(--amber)" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="570" y1="190" x2="570" y2="236" stroke="var(--blue)" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="80" y="238" width="340" height="86" rx="9" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="0.5"/>
+  <text class="t" x="250" y="264" text-anchor="middle" style="fill:var(--amber-tx)">THE TABLE</text>
+  <text class="ts" x="250" y="286" text-anchor="middle">the belief rendered as miniatures</text>
+  <text class="ts" x="250" y="304" text-anchor="middle">uncertainty shown as finish</text>
+
+  <rect x="400" y="238" width="340" height="86" rx="9" fill="var(--blue-bg)" stroke="var(--blue)" stroke-width="0.5"/>
+  <text class="t" x="570" y="264" text-anchor="middle" style="fill:var(--blue-tx)">THE WINDOW</text>
+  <text class="ts" x="570" y="286" text-anchor="middle">the world seen from the seat</text>
+  <text class="ts" x="570" y="304" text-anchor="middle">period art · render LOD by distance</text>
+
+  <path d="M250 324 L250 388 L268 388" fill="none" stroke="var(--teal)" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M570 324 L570 388 L552 388" fill="none" stroke="var(--teal)" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <rect x="270" y="360" width="280" height="58" rx="9" fill="var(--teal-bg)" stroke="var(--teal)" stroke-width="0.5"/>
+  <text class="t" x="410" y="384" text-anchor="middle" style="fill:var(--teal-tx)">THE DIVE</text>
+  <text class="ts" x="410" y="404" text-anchor="middle">table → window, only where known</text>
+</svg>
+</div>
+<p class="figcap">Fig 1 — one simulation feeds two render surfaces; the Dive bridges them, gated by knowledge.</p>
+
+<h2><span class="n">2</span>The Table — the command surface</h2>
+<p>Present at every zoom, campaign and battle alike: your belief database rendered as a physical miniature world. It is the primary surface and the one that ships first, because it is mostly typography, glyphs, and one animated rider — buildable now as the CLI's 2D graduation.</p>
+
+<div class="law"><b>Uncertainty as finish.</b> A rumored thing is a charcoal sketch; scouted is unpainted lead; confirmed is a painted miniature; intelligence going stale is dust gathering on the piece. The player learns to feel epistemic confidence as material finish — fog of war as craftsmanship.</div>
+
+<div class="screen" role="img" aria-label="Mockup of the Table: belief markers with certainty glyphs, an in-flight order, and time-advance controls.">
+  <div class="scr-head">
+    <div><span class="scr-title">The Table</span> <span class="scr-sub">— Camp station</span></div>
+    <div class="mono scr-sub">day 14 · dawn · latency ~40 min</div>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 210px; gap:14px">
+    <div class="inner">
+      <div class="note mono" style="margin-bottom:12px; letter-spacing:.5px">YOUR FIELD, AS YOU BELIEVE IT</div>
+      <div class="belief-row"><span class="gl" style="color:var(--ok)">*</span> Your vanguard <span class="note">— confirmed, here</span></div>
+      <div class="belief-row"><span class="gl" style="color:var(--info)">~</span> Enemy column, the ridge <span class="note">— scouted 2h ago</span></div>
+      <div class="belief-row" style="color:var(--muted)"><span class="gl" style="color:var(--faint)">?</span> Horse, beyond the wood <span class="note">— rumored</span></div>
+      <div class="belief-row" style="color:var(--faint)"><span class="gl">.</span> Baggage train <span class="note">— stale, 6h unread</span></div>
+      <div style="margin-top:16px; padding-top:12px; border-top:0.5px dashed var(--line); font-size:13px; color:var(--info)">↗ Rider carrying "hold the ridge" — in flight, ~25 min out</div>
+    </div>
+    <div>
+      <div class="note mono" style="letter-spacing:.5px">FINISH = CERTAINTY</div>
+      <div class="mono" style="font-size:13px; color:var(--muted); line-height:1.9; margin:6px 0 16px">* painted<br>~ lead<br>? charcoal<br>. dust</div>
+      <div class="note mono" style="letter-spacing:.5px">SPEND THE WAIT</div>
+      <div class="btn">Hold here · let news come</div>
+      <div class="btn">Ride to the hill ↗</div>
+    </div>
+  </div>
+  <p class="note" style="margin:12px 2px 0">You see your information state, not the ground truth. The order is gone — you cannot recall it; you choose only where to be when it lands.</p>
+</div>
+
+<h3>The order in flight (Addendum Y)</h3>
+<p>Issuing an order does <em>not</em> advance time — it queues a rider with his own travel latency. Advancing time is a separate act: <b>HOLD</b> at the current scene to let reports trickle in, or <b>MOVE</b> to a new station, which switches your vantage (and your belief DB) while time passes to cover the transit. Either way the order resolves on geography's clock, independent of how you spend the wait — and several orders can be in flight at once, each surfacing at its own arrival moment. You did not just issue an irrevocable order; you decided how to wait for it, and that is irrevocable too.</p>
+
+<h2><span class="n">3</span>The Window — the witness surface</h2>
+<p>Seat-locked 3D in the era's own visual language, opened only when you are somewhere — the Knot on its hill, the Front Rank's three meters, the Archive's earned free flight. It is the expensive surface and the one that recruits "let me just drive it" buyers, so it ships <em>second</em>, after the Table proves the loop.</p>
+
+<div class="law"><b>No floating bars, ever.</b> A unit's state reads through banner behavior and posture, not a meter. Render fidelity mirrors the simulation tiers — full figures near the seat, instanced blocks in the middle distance, painted density for the far masses (the style, not a compromise — period battle art always handled crowds as pattern), and gold-leaf cloud for what you cannot see.</div>
+
+<div class="screen" role="img" aria-label="Mockup of the Window: a stylized hilltop view with near figures and banner, a mid-distance block, a far density band, and gold cloud over the unknown.">
+  <div class="scr-head">
+    <div><span class="scr-title">The Window</span> <span class="scr-sub">— Hill station, locked seat</span></div>
+    <div class="mono scr-sub">render LOD by distance</div>
+  </div>
+  <svg viewBox="0 0 760 300" role="img" aria-label="Stylized battlefield from a hill.">
+    <rect x="0" y="0" width="760" height="180" fill="#e6e2d3"/>
+    <rect x="0" y="180" width="760" height="120" fill="#d8d0ba"/>
+    <ellipse cx="620" cy="66" rx="160" ry="62" fill="#cdb24a" opacity="0.32"/>
+    <ellipse cx="670" cy="100" rx="120" ry="46" fill="#cdb24a" opacity="0.30"/>
+    <text x="640" y="58" style="font:12px sans-serif; fill:#6b5a17">fog = gold cloud</text>
+    <rect x="400" y="120" width="160" height="34" rx="3" fill="#33408f" opacity="0.22"/>
+    <rect x="400" y="120" width="160" height="34" rx="3" fill="none" stroke="#33408f" stroke-width="0.5" opacity="0.4"/>
+    <text x="480" y="170" text-anchor="middle" style="font:11px sans-serif; fill:#33408f">far wing — painted density</text>
+    <rect x="200" y="200" width="130" height="40" rx="3" fill="#6b6f73" opacity="0.5"/>
+    <line x1="210" y1="200" x2="320" y2="200" stroke="#4a4d50" stroke-width="1.5"/>
+    <text x="265" y="258" text-anchor="middle" style="font:11px sans-serif; fill:#4a4d50">mid — instanced block</text>
+    <g>
+      <rect x="80" y="232" width="6" height="20" fill="#a6342b"/><rect x="92" y="230" width="6" height="22" fill="#a6342b"/>
+      <rect x="104" y="233" width="6" height="19" fill="#a6342b"/><rect x="116" y="231" width="6" height="21" fill="#a6342b"/>
+      <line x1="110" y1="210" x2="110" y2="232" stroke="#7a2a22" stroke-width="1.5"/>
+      <polygon points="110,210 134,214 110,222" fill="#a6342b"/>
+      <text x="106" y="278" text-anchor="middle" style="font:11px sans-serif; fill:#7a2a22">your guard — full figures, banner high</text>
+    </g>
+  </svg>
+  <div style="display:flex; gap:18px; margin-top:12px; font-size:12px; color:var(--faint); flex-wrap:wrap">
+    <span>▲ banner high = cohesion holds</span><span>✕ no health bars, ever</span><span>⊘ seat is fixed — you cannot fly</span>
+  </div>
+</div>
+
+<h2><span class="n">4</span>The Dive — the binding grammar</h2>
+<p>Lean into the Table and the camera falls into the miniature — the painted piece blooming into the Window at that piece's vantage — <em>available only where your knowledge permits</em>. You can dive onto your own hill; you cannot dive into a charcoal sketch. The transition itself teaches the game's central law every time it plays, which is why it is also the trailer shot. Post-battle, the Archive unlocks the Window everywhere, with the two-layer truth as the scrub: the era's depiction (the tapestry's arrow) versus the trace (the sword, in the ditch, after the wall broke).</p>
+
+<h2><span class="n">5</span>Engine notes &amp; build order</h2>
+<div class="grid2">
+  <div class="card"><h4>Headless core, engine as client</h4><p>The Rust/Python core owns the simulation and the trace; Unity or Unreal is a pure trace-playback client. The renderer never needs deterministic physics, so replays are free and the engine choice is a tooling preference, not a foundation bet.</p></div>
+  <div class="card"><h4>The cost center is the art bible</h4><p>The NPR shader stack (ink, hatch, gouache, thread) is built once; each era's visual language needs an art director's year. One era ships first; the second exists to prove the pipeline general.</p></div>
+  <div class="card"><h4>Table first, Window second</h4><p>The 2D Table is the CLI's natural graduation and carries the whole loop. The Window is the expensive surface and the one that tempts the "drive it yourself" market — it follows, gated by the motion-coherence spike below.</p></div>
+  <div class="card"><h4>The spike before the scope</h4><p>Before any Window scoping, prove painterly NPR holds together under camera movement (the known hard problem) on a real Lattice trace. Hard-but-shipped, not open research — but it gates the budget.</p></div>
+</div>
+
+<div class="law" style="border-left-color:var(--teal)"><b>UI law throughout.</b> No floating bars; instruments are diegetic (the sun is the clock, the paper accumulating on the Table is the casualty report); confidence-as-finish replaces every minimap and intel overlay the genre has trained players to expect. Accessibility is built in, not bolted on: banner <em>shapes</em> carry faction identity redundantly with color, the truth-audio channel has a captioned sound-picture, and the text core makes screen-reader play achievable.</div>
+
+<h2><span class="n">6</span>The pitch, in one line</h2>
+<p style="font-size:17px; color:var(--ink)">Kessen made a movie you could slightly control. This makes a primary source you can stand inside — diegetic miniature command over your beliefs, a seat-locked period-art window on the world, and the knowledge-gated dive between them.</p>
+
+<footer>
+  MARCHLAND — graphical UI specification · derived from design Addendum U (The Table and the Window) and Addendum Y (Scenes, and the Order in Flight).<br>
+  This is a high-level interface spec, not an implementation. The simulation core, validation battery, and reference code live in the project repository.
+</footer>
+
+</div>
+</body>
+</html>
