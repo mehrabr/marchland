@@ -1,0 +1,3 @@
+{
+  "officer_cavalry_judgment.refuses_formed": ["cavalry officer refuses formed infantry charge in majority of seeds (>6/12)", "A", "M7.7 §4: horse_solid threshold (3.0) lifted to command layer. Mounted officer declines charge/advance into density >= 3.0. Density in [3.5,7.0] always above threshold.", "12/12", true]
+}

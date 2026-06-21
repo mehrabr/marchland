@@ -1,0 +1,5 @@
+{
+  "officer_initiative_vs_trust.high_exploits_more": ["high-trust officer exploits flank more often than low-trust (aggregate)", "A", "M7.7 §4: trust is viscosity not mutiny. high_trust=0.9 exploits in 12/12 seeds; low_trust=0.2 in 2/12. Coverage in [0.12,0.26] is the discriminating zone.", "12>2", true],
+  "officer_initiative_vs_trust.monotone_holds": ["monotone: high-trust exploits >= low-trust exploitation (all 12 seeds)", "A", "M7.7: never low-without-high in the discriminating zone. Ensures trust is viscosity, not random jitter.", "12/12", true],
+  "officer_initiative_vs_trust.no_mutiny": ["low-trust officer never produces mutiny/erratic action (all 12 seeds)", "A", "M7.7: low trust = conservative literalism only. Low-trust officer either holds (no action) or executes 'flank' (the only valid initiative action). No other output.", "12/12", true]
+}

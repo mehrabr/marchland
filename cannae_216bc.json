@@ -1,0 +1,83 @@
+{
+  "_comment": "MARCHLAND scenario: Cannae, 216 BC. The capstone officer-AI + meaning-layer entry.",
+  "_thesis": "The frontage cap IS the envelopment. The controlled withdrawal of the center is a COMMAND DECISION (player or officer-AI), never a script. The Iberian/Gallic center must hold the MEANING of 'give ground as ordered' against its own reading of 'we are losing' (Addendum X) or the withdrawal decays into a rout and the trap never closes.",
+  "id": "cannae_216bc",
+  "field": [320, 300],
+  "break_frac": 0.45,
+
+  "_receipts_note": "No quality coefficients. Carthaginian veteran cohorts have high drill-days (receipts), African flanks are fresh, cavalry superiority is a numbers+horse-quality receipt. Roman deep deployment is the historical BLUNDER, encoded as geometry (too dense to bring depth to bear under the frontage cap), not a debuff.",
+
+  "cohorts": [
+    {
+      "_role": "Roman mass — deep, dense, frontage-capped (the blunder as geometry)",
+      "side": 0, "n": 800, "x": [40, 120], "y": [60, 240],
+      "err": 0.7, "armor": 0.4, "belief": 0.7, "disc": 0.6, "fat0": 0.1,
+      "depth_ratio": 3.0, "_note": "8 maniples deep where 3 would fight; rear ranks press, cannot engage"
+    },
+    {
+      "_role": "Carthaginian/Iberian center — the bowed line that must give ground WITHOUT breaking",
+      "side": 1, "n": 240, "x": [150, 175], "y": [90, 210],
+      "err": 0.85, "armor": 0.3, "belief": 0.75, "disc": 0.8, "fat0": 0.05,
+      "officer": "mago_center",
+      "standing_order": "fighting_withdrawal",
+      "institution_of_meaning": "ordered_retreat_holds",
+      "_note": "disc 0.8 + the withdrawal repertoire + the meaning institution are what let it bend not break"
+    },
+    {
+      "_role": "African veterans, left flank — fresh, in column, wait to wheel inward",
+      "side": 1, "n": 180, "x": [150, 175], "y": [40, 88],
+      "err": 0.9, "armor": 0.45, "belief": 0.8, "disc": 0.85, "fat0": 0.0,
+      "officer": "hasdrubal_left", "standing_order": "hold_then_wheel"
+    },
+    {
+      "_role": "African veterans, right flank — fresh, in column, wait to wheel inward",
+      "side": 1, "n": 180, "x": [150, 175], "y": [212, 260],
+      "err": 0.9, "armor": 0.45, "belief": 0.8, "disc": 0.85, "fat0": 0.0,
+      "officer": "hasdrubal_right", "standing_order": "hold_then_wheel"
+    },
+    {
+      "_role": "Carthaginian heavy cavalry — wins its wing and RETURNS to hit the rear",
+      "side": 1, "n": 120, "x": [150, 175], "y": [20, 40], "mounted": 1,
+      "err": 0.85, "armor": 0.4, "belief": 0.85, "disc": 0.7, "fat0": 0.05,
+      "officer": "hanno_horse", "standing_order": "rout_wing_then_envelop",
+      "_note": "the return is the kill; cavalry that pursues off-map loses Cannae"
+    }
+  ],
+
+  "institutions_of_meaning": {
+    "ordered_retreat_holds": {
+      "carried_by": "mago_center",
+      "transform": {"bodies_here": 0.55, "behind": 0.7},
+      "_transform_note": "the center reads its own dead and the pressure as the EXPECTED PRICE of a planned maneuver, not as defeat — cue values attenuated before the universal threshold",
+      "failure_conditions": ["mago_center killed", "sentiment:we_are_losing > 0.6", "center penetrated > 50%"],
+      "break_effect": "raw_cues",
+      "_break_note": "if Mago falls or the cohort's reading flips, the withdrawal becomes a real rout and the Roman mass pours through the gap — the trap fails"
+    }
+  },
+
+  "officer_test": {
+    "_what_this_grades": "Can the AI center execute 'give ground without breaking', and does the meaning hold?",
+    "subject": "mago_center",
+    "grade": "A",
+    "pass_conditions": {
+      "withdrawal_executed": "center gives ground in good order in the majority of seeds (does not rout on contact)",
+      "meaning_holds_until_flanks_commit": "ordered_retreat_holds institution survives until the African flanks wheel (sentiment:we_are_losing stays < 0.6 through the bend)",
+      "envelopment_closes": "with withdrawal + wheel + cavalry return, Roman mass is enveloped and its appraisal cascade fires from the OUTSIDE IN (behind-cue spike on the outer ranks first)",
+      "kill_concentration": "Roman dead concentrate AFTER encirclement closes, not during the bend (percolation, not attrition)"
+    },
+    "reject_conditions": {
+      "scripted_withdrawal": "FAIL if the center withdraws on a timer regardless of belief/meaning (that is a script, not a decision)",
+      "rout_on_contact": "FAIL if the center breaks the instant it takes pressure (withdrawal repertoire absent or meaning not applied)",
+      "trace_cheat": "FAIL if any officer acts on enemy positions outside its belief DB"
+    },
+    "counterfactual_kill_mago": {
+      "_setup": "same scenario, mago_center killed at the moment of first contact",
+      "expect": "ordered_retreat_holds fails (failure_condition met) -> center reads raw cues -> withdrawal becomes rout -> Roman mass penetrates -> envelopment does NOT close -> Roman victory or draw in the majority of seeds",
+      "_teaches": "the genius was the system (right troops, right meaning, right officer), not the trick — killing the keeper of the meaning loses Cannae"
+    }
+  },
+
+  "pursuit_intensity": {"0": 0.35, "1": 0.85},
+  "cap_p": {"0": 0.0, "1": 0.0},
+  "_pursuit_note": "Cannae's kill-share is enormous BECAUSE the encircled have nowhere to flee — this scenario is also a stress test for the converging-horn pursuit fix (M7.0), the same open miss as Isandlwana's defender_dead_frac"
+}

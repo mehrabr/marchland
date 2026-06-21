@@ -1,0 +1,4 @@
+{
+  "officer_dead_repertoire.alive_can_withdraw": ["alive officer with repertoire executes fighting_withdrawal (all 12 seeds)", "A", "M7.7 Addendum K: fighting_withdrawal in repertoire = authorized action. Alive officer with explicit repertoire frozenset executes the withdrawal.", "12/12", true],
+  "officer_dead_repertoire.dead_cannot_withdraw": ["dead officer cannot execute fighting_withdrawal (all 12 seeds)", "A", "M7.7 Addendum K: kill the centurion, delete the menu item. is_dead=True empties effective repertoire. Rationale cites 'down'.", "12/12", true]
+}

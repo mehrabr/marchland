@@ -1,0 +1,4 @@
+{
+  "officer_open_flank.exploits_in_majority": ["officer exploits visible gap in majority of seeds (>6/12)", "A", "M7.7 §4: initiative within intent. Belief-bounded: officer sees gap in its DB (not trace). Coverage in [0.04,0.17] always below trust-adjusted threshold.", "12/12", true],
+  "officer_open_flank.no_trace_cheat": ["all exploited gaps are visible in officer's belief DB (0/12 trace_cheat)", "A", "M7.7 §2 discriminator: officer must never act on positions outside its belief DB. Validated by probe design — gap injected via receive_dispatch only.", "0/12 trace_cheat", true]
+}

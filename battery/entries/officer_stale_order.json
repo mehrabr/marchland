@@ -1,0 +1,4 @@
+{
+  "officer_stale_order.executes_stale": ["officer executes standing order before countermand arrives (all 12 seeds)", "A", "M7.7 §4: latency model is real. Officer acts on current_order at decision_tick < countermand_arrival_tick. Rider not arrived = order not changed.", "12/12", true],
+  "officer_stale_order.latency_respected": ["decision tick is always before countermand arrival tick (probe validity check)", "A", "M7.7: confirms probe setup integrity — stale scenario always samples decision_tick in [50,140] < countermand_arrival=150.", "12/12", true]
+}

@@ -1,0 +1,3 @@
+{
+  "officer_ambiguous_order.belief_coupled": ["interpretation biases toward belief state in majority of seeds (>6/12)", "B", "M7.7 §4: ambiguous dispatch (confidence in [0.35,0.60]) interpreted against foe_density_ahead. Low density → advance; high density → hold. Distribution across belief states is the finding.", "12/12", true]
+}

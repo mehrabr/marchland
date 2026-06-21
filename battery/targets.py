@@ -243,6 +243,140 @@ TARGETS = {
         "check": lambda results: 0.50 <= _median_dead_frac(results, 0) <= 0.90,
         "note": "M7.0 FIX: convergent_horn closes the known miss (was 40%; target 50-90%)",
     },
+
+    # ---- M7.7: Cannae, 216 BC ----
+    # Capstone: officer AI + meaning layer + convergent_horn all fire together.
+    # The controlled withdrawal of the center is a command decision, not a script.
+    "cannae_216bc.win": {
+        "description": "Carthaginians win majority of seeds (meaning active)",
+        "grade": "A",
+        "check": lambda results: sum(r["win"] == 1 for r in results) > len(results) / 2,
+        "note": "M7.7: frontage cap + meaning-attenuation + convergent_horn → encirclement closes",
+    },
+    "cannae_216bc.meaning_survives": {
+        "description": "Center cohort does not break before flanks engage (majority of seeds)",
+        "grade": "A",
+        "check": lambda results: sum(
+            _center_survives_long_enough(r) for r in results
+        ) > len(results) / 2,
+        "note": "M7.7: ordered_retreat_holds keeps center cues below threshold during the bend",
+    },
+    "cannae_216bc.kill_concentration": {
+        "description": "Roman dead fraction in [0.60, 0.95] — encirclement kill-share",
+        "grade": "C",
+        "check": lambda results: 0.60 <= _median_dead_frac(results, 0) <= 0.95,
+        "note": "KNOWN MISS (post-M7.7): cavalry-return + fighting_withdrawal needed for full kill-share",
+    },
+    "cannae_216bc.kill_mago_roman_win": {
+        "description": "kill_mago counterfactual: Romans win or draw majority of seeds",
+        "grade": "B",
+        "check": lambda results: sum(r["win"] != 1 for r in results) > len(results) / 2,
+        "note": "KNOWN MISS (post-M7.7): fighting_withdrawal in lattice + cavalry-return needed; "
+                "meaning layer attenuates cues but center's belief=0.75 is already above rout threshold",
+    },
+
+    # ---- M7.7: Officer battery entries — 8 decision probes ----
+
+    "officer_open_flank.exploits_in_majority": {
+        "description": "Officer exploits visible gap in majority of seeds",
+        "grade": "A",
+        "check": lambda results: sum(r["exploited"] for r in results) > len(results) / 2,
+        "note": "M7.7: initiative within intent; belief-bounded perception; no trace cheating",
+    },
+    "officer_open_flank.no_trace_cheat": {
+        "description": "All exploited gaps are visible in officer's belief DB",
+        "grade": "A",
+        "check": lambda results: all(not r.get("trace_cheat", False) for r in results),
+        "note": "M7.7: officer must never act on positions outside its belief DB",
+    },
+
+    "officer_suicidal_order.refuses_in_majority": {
+        "description": "Officer refuses suicidal charge in majority of seeds",
+        "grade": "A",
+        "check": lambda results: sum(r["refused"] for r in results) > len(results) / 2,
+        "note": "M7.7: captain-right; belief cites foe_density_ahead >= 4.0",
+    },
+    "officer_suicidal_order.belief_cited": {
+        "description": "All refusals cite foe_density_ahead in belief_state",
+        "grade": "A",
+        "check": lambda results: all(r["belief_cited"] for r in results if r["refused"]),
+        "note": "M7.7: discriminator — action must trace to belief at decision time",
+    },
+
+    "officer_stale_order.executes_stale": {
+        "description": "Officer executes standing order before countermand arrives (all seeds)",
+        "grade": "A",
+        "check": lambda results: all(r["executed_stale_order"] for r in results),
+        "note": "M7.7: latency model is real — rider not arrived = order not changed",
+    },
+    "officer_stale_order.latency_respected": {
+        "description": "Decision tick is always before countermand arrival tick (all seeds)",
+        "grade": "A",
+        "check": lambda results: all(r["latency_respected"] for r in results),
+        "note": "M7.7: confirms probe setup is valid (stale scenario)",
+    },
+
+    "officer_ambiguous_order.belief_coupled": {
+        "description": "Interpretation biases toward belief state in majority of seeds",
+        "grade": "B",
+        "check": lambda results: sum(r["belief_coupled"] for r in results) > len(results) / 2,
+        "note": "M7.7: ambiguous dispatch interpretation anchored to perceived conditions",
+    },
+
+    "officer_cavalry_judgment.refuses_formed": {
+        "description": "Cavalry officer refuses formed infantry charge in majority of seeds",
+        "grade": "A",
+        "check": lambda results: sum(r["refused_formed_charge"] for r in results) > len(results) / 2,
+        "note": "M7.7: horse_solid threshold lifted to command layer; role-keyed judgment",
+    },
+
+    "officer_dead_repertoire.alive_can_withdraw": {
+        "description": "Alive officer with repertoire executes fighting_withdrawal (all seeds)",
+        "grade": "A",
+        "check": lambda results: all(r["alive_can_withdraw"] for r in results),
+        "note": "M7.7: Addendum K — fighting_withdrawal in repertoire = authorized action",
+    },
+    "officer_dead_repertoire.dead_cannot_withdraw": {
+        "description": "Dead officer cannot execute fighting_withdrawal (all seeds)",
+        "grade": "A",
+        "check": lambda results: all(r["dead_cannot_withdraw"] for r in results),
+        "note": "M7.7: Addendum K — kill the centurion, delete the menu item",
+    },
+
+    "officer_honest_report.from_belief": {
+        "description": "Reports reflect officer's belief state (majority of seeds)",
+        "grade": "B",
+        "check": lambda results: sum(r["report_from_belief"] for r in results) > len(results) / 2,
+        "note": "M7.7: patron audit depends on belief-mediated reports, not trace read-through",
+    },
+    "officer_honest_report.trust_shading_coupled": {
+        "description": "Low trust produces shading; high trust reports accurately (majority)",
+        "grade": "B",
+        "check": lambda results: sum(r["trust_shading_coupled"] for r in results) > len(results) / 2,
+        "note": "M7.7: low-trust officers shade bad news — seed of the lying-chronicle machinery",
+    },
+
+    "officer_initiative_vs_trust.high_exploits_more": {
+        "description": "High-trust officer exploits flank more often than low-trust",
+        "grade": "A",
+        "check": lambda results: (
+            sum(r["high_trust_exploited"] for r in results) >
+            sum(r["low_trust_exploited"] for r in results)
+        ),
+        "note": "M7.7: trust is viscosity not mutiny — monotone across the trust range",
+    },
+    "officer_initiative_vs_trust.monotone_holds": {
+        "description": "Monotone property: high-trust ≥ low-trust exploitation (all seeds)",
+        "grade": "A",
+        "check": lambda results: all(r["monotone_holds"] for r in results),
+        "note": "M7.7: never low-without-high — ensures trust is viscosity, not random",
+    },
+    "officer_initiative_vs_trust.no_mutiny": {
+        "description": "Low-trust officer never produces mutiny/erratic action (all seeds)",
+        "grade": "A",
+        "check": lambda results: all(r["low_trust_no_mutiny"] for r in results),
+        "note": "M7.7: low trust = conservative literalism, not rebellion",
+    },
 }
 
 
@@ -300,3 +434,13 @@ def _median_val(results, key):
 
 def _in_range(val, lo, hi):
     return lo <= val <= hi
+
+
+def _center_survives_long_enough(result):
+    """True if the Carthaginian center (side 1 cohort 1) didn't break first.
+
+    A proxy: the battle lasted longer than 200s AND Carthaginians won.
+    The meaning layer keeping the center alive is validated by Carthage winning
+    AND by the battle time being long enough for the flanks to wheel in.
+    """
+    return result.get('win') == 1 and result.get('t', 0) > 200.0

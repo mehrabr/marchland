@@ -1,0 +1,4 @@
+{
+  "officer_suicidal_order.refuses_in_majority": ["officer refuses suicidal charge in majority of seeds (>6/12)", "A", "M7.7 §4: captain-right behavior. Density in [4.5,8.0] always above SUICIDAL_FOE_DENSITY=4.0. Trust<0.30 (cowed) may comply — captain-wrong, allowed.", "12/12", true],
+  "officer_suicidal_order.belief_cited": ["all refusals cite foe_density_ahead in belief_state", "A", "M7.7 §2 discriminator: action must trace to belief at decision time. belief_state must contain foe_density_ahead for every refusal.", "12/12", true]
+}

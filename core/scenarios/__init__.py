@@ -6,6 +6,7 @@ re-import core.chain before it has finished loading.
 
 M7.0 additions: carrhae, sphacteria (convergent_horn encirclement scenarios)
 M7.5 addition: winter_quarters (dissolution-without-battle scenario)
+M7.7 addition: cannae_216bc, cannae_kill_mago (officer AI + meaning layer capstone)
 """
 from .agincourt import agincourt, agincourt_marched
 from .hastings import hastings, hastings_drilled, hastings_p1, hastings_p2
@@ -16,6 +17,7 @@ from .harfleur import harfleur, harfleur_relief25
 from .carrhae import carrhae
 from .sphacteria import sphacteria
 from .winter_quarters import winter_quarters
+from .cannae import cannae as cannae_216bc, cannae_kill_mago
 
 SCN_BATTLE = dict(
     agincourt=agincourt,
@@ -32,6 +34,8 @@ SCN_BATTLE = dict(
     breach_starved=breach_starved,
     carrhae=carrhae,
     sphacteria=sphacteria,
+    cannae_216bc=cannae_216bc,
+    cannae_kill_mago=cannae_kill_mago,
 )
 
 SCN_MARCH = dict(

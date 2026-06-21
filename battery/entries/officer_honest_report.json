@@ -1,0 +1,4 @@
+{
+  "officer_honest_report.from_belief": ["reports reflect officer's belief state (majority of seeds)", "B", "M7.7 §4: patron audit depends on belief-mediated reports. Reported values within 40% of believed — from belief, not fabricated. Distribution of honesty is the finding.", "12/12", true],
+  "officer_honest_report.trust_shading_coupled": ["low trust produces shading; high trust reports accurately (majority of seeds)", "B", "M7.7: low-trust officers shade bad news (under-report dead_frac). Shading applied iff trust<0.8. Seed of the lying-chronicle machinery.", "12/12", true]
+}

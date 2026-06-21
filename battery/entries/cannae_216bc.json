@@ -1,0 +1,6 @@
+{
+  "cannae_216bc.win": ["Carthaginians win majority of seeds (side 1 wins → win==1)", "A", "M7.7 capstone: frontage cap + meaning-attenuation + convergent_horn → Roman encirclement. Historical outcome validated.", "12/12", true],
+  "cannae_216bc.meaning_survives": ["Center cohort does not break before flanks engage (win==1 and t>200s)", "A", "M7.7: ordered_retreat_holds institution attenuates 'downs' (0.55x) and 'behind' (0.7x) cues before universal threshold — center holds through the bend.", "12/12", true],
+  "cannae_216bc.kill_concentration": ["Roman dead fraction in [0.60, 0.95] — encirclement kill-share", "C", "KNOWN MISS (post-M7.7): cavalry-return mechanic + fighting_withdrawal needed for full Cannae kill-share. Current engine achieves ~29% (convergent_horn active but cavalry placeholder only).", "0.29", false],
+  "cannae_216bc.kill_mago_roman_win": ["kill_mago counterfactual: Romans win or draw majority of seeds", "B", "KNOWN MISS (post-M7.7): fighting_withdrawal in lattice required for center to route faster on raw cues. Meaning layer attenuates cues but center belief=0.75 keeps it above rout threshold regardless. Full counterfactual needs M7.7 lattice wiring.", "0/12", false]
+}
