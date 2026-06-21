@@ -1,9 +1,9 @@
-"""F1 reproducibility gate: seed-0 stochastic Agincourt must produce a bit-identical trace.
+"""F1 reproducibility gate: seed-0 stochastic traces must be bit-identical within the pinned runtime.
 
 Reproducibility envelope: (inputs, seed) within numpy==2.4.6 on the same CPU architecture.
 Cross-arch is NOT covered — float reductions (np.exp, sum, median) are libm/BLAS-order-dependent.
-This test is the tripwire: if the numpy version changes, or an RNG call is reordered,
-this hash flips and the change is caught before it silently breaks replay.
+These hashes are the tripwires: if the numpy version changes, or an RNG call is reordered,
+a hash flips and the change is caught before it silently breaks replay.
 """
 import hashlib
 import json
@@ -11,6 +11,7 @@ import json
 from core.scenarios.agincourt import agincourt
 from core.lattice import Battle
 from core.trace import Trace
+from core.chain import run_chain_1415
 
 # Generated on numpy==2.4.6, Python==3.14.*, seed=0 stochastic.
 # To regenerate after a deliberate RNG-order change:
@@ -59,3 +60,32 @@ def test_seed0_determinism_two_runs():
         assert a.t == b_.t and a.agent_id == b_.agent_id and a.cause == b_.cause, (
             f"Death cert mismatch: {a} vs {b_}"
         )
+
+
+# ---------------------------------------------------------------------------
+# F1-b: Full 1415 chain (Harfleur siege → Agincourt march → Agincourt battle)
+# Covers the path players actually traverse — single-phase hash covers only one model.
+#
+# Generated on numpy==2.4.6, Python==3.14.*, seed=0.
+# To regenerate after a deliberate RNG-order change:
+#   python3 -c "
+#   import hashlib, json
+#   from core.chain import run_chain_1415
+#   result = run_chain_1415(seed=0)
+#   h = hashlib.sha256(json.dumps(result['trace'], sort_keys=True, default=str).encode()).hexdigest()
+#   print(h)
+#   "
+CHAIN_GOLDEN_HASH = "c65f2919dfeb062b3c592d13d96e88e288ad64fe4410f0423ac47f352d5667dc"
+
+
+def test_chain_1415_seed0_golden_hash():
+    """Full 1415 chain seed-0 must reproduce bit-identically within the pinned runtime."""
+    result = run_chain_1415(seed=0)
+    h = hashlib.sha256(
+        json.dumps(result['trace'], sort_keys=True, default=str).encode()
+    ).hexdigest()
+    assert h == CHAIN_GOLDEN_HASH, (
+        f"Chain trace hash changed: got {h}\n"
+        f"Expected {CHAIN_GOLDEN_HASH}\n"
+        "If intentional, regenerate using the command in this file and update CHAIN_GOLDEN_HASH."
+    )

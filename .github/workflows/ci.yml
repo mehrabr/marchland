@@ -7,8 +7,16 @@ on:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
+
+    strategy:
+      matrix:
+        numpy-version: ["2.4.6", "2.5.0"]
+      fail-fast: false
+
+    # Off-pin leg is allowed to fail — it exists to surface stream changes, not block merges.
+    continue-on-error: ${{ matrix.numpy-version != '2.4.6' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -17,14 +25,16 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-          allow-prereleases: true
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -e .
+        run: pip install -e . "numpy==${{ matrix.numpy-version }}"
 
       - name: Receipts check (no quality coefficients)
         run: make receipts-check
+
+      - name: Reproducibility gate (seed-0 stochastic golden hash)
+        run: pytest tests/test_reproducibility.py -v
 
       - name: Unit tests
         run: make test

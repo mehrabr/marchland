@@ -27,10 +27,10 @@ def _minimal_scn_with_n(n_val):
     )
 
 
-@given(n=st.integers(min_value=0, max_value=0))
-@settings(max_examples=3)
+@given(n=st.integers(min_value=0, max_value=5))
+@settings(max_examples=20)
 def test_zero_agent_cohort_does_not_crash(n):
-    """A cohort with n=0 must not raise; the sim completes or times out cleanly."""
+    """A cohort with n in [0, 5] must not raise; the sim completes or times out cleanly."""
     scn = _minimal_scn_with_n(n)
     b = Battle(scn, seed=42, det=False)
     ticks = 0
@@ -59,8 +59,9 @@ def test_fatigue_stays_bounded(seed, fat0):
         ticks += 1
         if ticks > 5_000:
             break
-        assert float(b.fat[b.alive].min()) >= 0.0, f"fat went negative at tick {ticks}"
-        assert float(b.fat[b.alive].max()) <= 1.0, f"fat exceeded 1.0 at tick {ticks}"
+        if b.alive.any():
+            assert float(b.fat[b.alive].min()) >= 0.0, f"fat went negative at tick {ticks}"
+            assert float(b.fat[b.alive].max()) <= 1.0, f"fat exceeded 1.0 at tick {ticks}"
 
 
 # ---------------------------------------------------------------------------
