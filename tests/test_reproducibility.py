@@ -4,6 +4,33 @@ Reproducibility envelope: (inputs, seed) within numpy==2.4.6 on the same CPU arc
 Cross-arch is NOT covered — float reductions (np.exp, sum, median) are libm/BLAS-order-dependent.
 These hashes are the tripwires: if the numpy version changes, or an RNG call is reordered,
 a hash flips and the change is caught before it silently breaks replay.
+
+Model A (Ren'Py) re-pin note:
+  pyproject.toml and CI now target Python 3.12 (cp312) to match Ren'Py 8.5.3's bundled
+  interpreter. numpy's PCG64 RNG is pure C so the streams should be identical across
+  Python minor versions, but if hashes fail under cp312, regenerate with:
+
+    python3.12 -c "
+    import hashlib, json
+    from core.scenarios.agincourt import agincourt
+    from core.lattice import Battle
+    from core.trace import Trace
+    scn = agincourt(); trace = Trace(phase='battle', scenario='agincourt', seed=0)
+    b = Battle(scn, seed=0, det=False, trace=trace)
+    while b.bt[0] is None and b.bt[1] is None and b.t < 3600: b.tick()
+    d = trace.to_dict()
+    print(hashlib.sha256(json.dumps(d, sort_keys=True, default=str).encode()).hexdigest())
+    "
+
+    python3.12 -c "
+    import hashlib, json
+    from core.chain import run_chain_1415
+    result = run_chain_1415(seed=0)
+    h = hashlib.sha256(json.dumps(result['trace'], sort_keys=True, default=str).encode()).hexdigest()
+    print(h)
+    "
+
+  Then update GOLDEN_HASH and CHAIN_GOLDEN_HASH below and commit with a note.
 """
 import hashlib
 import json
