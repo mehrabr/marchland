@@ -18,6 +18,12 @@ init python:
         SaveCapsule,
     )
 
+    ## Suppress quit-confirmation dialog — Ren'Py 8.5.3 layout.yesno_prompt missing
+    config.quit_action = Quit(confirm=False)
+    ## Patch missing SDK method so any residual confirm path also doesn't crash
+    if not hasattr(layout, 'yesno_prompt'):
+        layout.yesno_prompt = lambda *a, **kw: True
+
     ## Rollback partition (spec §7):
     ## Block rollback globally — the "blunt instrument". The precise tool is
     ## renpy.block_rollback() at each commitment point in marchland.rpy.

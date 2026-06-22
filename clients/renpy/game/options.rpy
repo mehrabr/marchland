@@ -10,6 +10,9 @@
 define config.name = "MARCHLAND"
 define config.version = "0.1.0"
 
+define config.screen_width = 1280
+define config.screen_height = 720
+
 ## ---------------------------------------------------------------------------
 ## Sounds / Music (none for v0.1.0)
 

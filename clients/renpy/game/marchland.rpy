@@ -77,7 +77,7 @@ label station_scene:
             call screen battle_menu
             call commit_order("battle")
 
-        "Ride to the hill [change station].":
+        "Ride to the hill [[change station].":
             python:
                 capsule.station = 'HILL'
             ## Station change is movement, not commitment — no block_rollback
@@ -88,7 +88,7 @@ label station_scene:
                 capsule.station = 'CAMP'
             jump station_scene
 
-        "Open the Archive [review chronicle].":
+        "Open the Archive [[review chronicle].":
             call archive_scene
 
     ## 3. Advance the clock — separate act (M7.A: order and time are distinct)
@@ -231,11 +231,11 @@ screen the_table(belief):
             for phase, claims in belief.items():
                 text "[phase]:" style "table_phase"
                 for claim, entry in claims.items():
-                    text "[entry['glyph']] [claim]: [entry['value']] ([entry['confidence']:.0%}])" style "table_entry"
+                    text "[entry['glyph']] [claim]: [entry['value']] ([entry['confidence']:.0%])" style "table_entry"
     use hud_dismiss
 
 
-screen tactic_menu:
+screen tactic_menu():
     ## Siege tactic choice — feeds capsule.siege_tactic before commit_order("siege")
     frame:
         xalign 0.5
@@ -243,11 +243,11 @@ screen tactic_menu:
         vbox:
             spacing 10
             text "Siege of Harfleur — choose your approach:"
-            textbutton "Wait for terms (patient)" action [SetVariable("capsule.siege_tactic", "wait"), Return()]
-            textbutton "Press for storm (costly)"  action [SetVariable("capsule.siege_tactic", "storm"), Return()]
+            textbutton "Wait for terms (patient)" action [SetField(capsule, "siege_tactic", "wait"), Return()]
+            textbutton "Press for storm (costly)"  action [SetField(capsule, "siege_tactic", "storm"), Return()]
 
 
-screen pace_menu:
+screen pace_menu():
     ## March pace choice — feeds capsule.march_pace before commit_order("march")
     frame:
         xalign 0.5
@@ -255,12 +255,12 @@ screen pace_menu:
         vbox:
             spacing 10
             text "March to Agincourt — set pace:"
-            textbutton "Normal pace"          action [SetVariable("capsule.march_pace", "normal"), Return()]
-            textbutton "Push hard (more attrition)" action [SetVariable("capsule.march_pace", "push"),   Return()]
-            textbutton "Rest every 4 days"    action [SetVariable("capsule.march_pace", "rest"),   Return()]
+            textbutton "Normal pace"          action [SetField(capsule, "march_pace", "normal"), Return()]
+            textbutton "Push hard (more attrition)" action [SetField(capsule, "march_pace", "push"),   Return()]
+            textbutton "Rest every 4 days"    action [SetField(capsule, "march_pace", "rest"),   Return()]
 
 
-screen battle_menu:
+screen battle_menu():
     ## Battle choice — feeds capsule.battle_choice before commit_order("battle")
     frame:
         xalign 0.5
@@ -268,8 +268,8 @@ screen battle_menu:
         vbox:
             spacing 10
             text "The French array is before you:"
-            textbutton "Engage"    action [SetVariable("capsule.battle_choice", "engage"),   Return()]
-            textbutton "Withdraw"  action [SetVariable("capsule.battle_choice", "withdraw"), Return()]
+            textbutton "Engage"    action [SetField(capsule, "battle_choice", "engage"),   Return()]
+            textbutton "Withdraw"  action [SetField(capsule, "battle_choice", "withdraw"), Return()]
 
 
 screen archive_screen(archive):
@@ -296,5 +296,5 @@ screen archive_screen(archive):
             textbutton "Return" action Return()
 
 
-screen hud_dismiss:
+screen hud_dismiss():
     textbutton "Continue" action Return() xalign 0.5 yalign 0.95
