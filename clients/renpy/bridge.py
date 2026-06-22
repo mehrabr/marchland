@@ -328,6 +328,7 @@ def trace_for_archive(trace_dict: Dict) -> Dict[str, Any]:
         'rout_count': len(trace_dict.get('routs', [])),
         'events': events,
         'summary': trace_to_summary(trace_dict),
+        'seed': trace_dict.get('seed'),
     }
 
 
