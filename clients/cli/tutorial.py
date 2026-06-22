@@ -35,6 +35,9 @@ from core.march import run_march
 from core.lattice import Battle
 from clients.cli.covenant import print_covenant
 from clients.cli.help import show_help
+from clients.cli.inspect import (
+    Inspector, captain_eye, muster_hint, dispatch as inspect_dispatch,
+)
 
 
 # ------------------------------------------------------------------
@@ -127,6 +130,7 @@ class TutorialState:
     commission: Commission
     seed: int
     belief_db: BeliefDB = field(default_factory=BeliefDB)
+    inspector: Inspector = field(default_factory=Inspector)
     trace_phases: List[Any] = field(default_factory=list)
     composed_trace: Optional[Dict] = None
     march_result: Optional[Dict] = None
@@ -141,7 +145,12 @@ class TutorialState:
 # Annotated muster
 
 def _print_annotated_muster(commission: Commission, io: _IO) -> None:
-    """Print the muster roll with receipt explanations in parentheticals."""
+    """Muster as a captain would see his own men — prose, not a spreadsheet.
+
+    The figures are not gone; they live behind 'inspect <cohort>'. The default
+    surface is a captain's eye on what the men ARE. That inspectability is how
+    the game proves it never loads the dice (see 'help receipts').
+    """
     io.print()
     io.print("=" * 58)
     io.print("  MUSTER — commission from Lord Camoys")
@@ -151,43 +160,20 @@ def _print_annotated_muster(commission: Commission, io: _IO) -> None:
     io.print(f"  Deadline: {commission.strings['deadline_days']} days")
     io.print(f"  Army    : {commission.army_name}")
     io.print()
-    io.print("  RECEIPTS — every number below answers: what changes it?")
-    io.print("  Parenthetical labels: (B)=equipment (C)=campaign state")
-    io.print("  (D)=institution (E)=trained capacity  Type 'help receipts'.")
+    io.print("  You walk the lines and take the measure of your men:")
     io.print()
 
-    # Locate receipt_notes for this army
-    notes_by_label: Dict[str, List[str]] = {}
-    for army in commission.culture.get('armies', []):
-        if army['name'] == commission.army_name:
-            notes_by_label = army.get('receipt_notes', {})
-            break
-
     for c in commission.army_cohorts:
-        label = c['label']
-        n = c['n']
-        equip_parts = []
-        a = c.get('armor', 0)
-        if a >= 0.7:
-            equip_parts.append(f"partial harness (armor={a:.2f})")
-        elif a >= 0.1:
-            equip_parts.append(f"padded (armor={a:.2f})")
-        else:
-            equip_parts.append('unarmored')
-        if c.get('ranged'):
-            equip_parts.append(f"longbow ×{c.get('ammo', 0)} sheaves")
-        if c.get('mounted'):
-            equip_parts.append('mounted')
-
-        io.print(f"  {label}  ({n} men)")
-        io.print(f"    Equipment: {', '.join(equip_parts)}")
-        for note in notes_by_label.get(label, []):
-            io.print(f"      · {note}")
+        if not isinstance(c, dict):
+            continue
+        io.print(f"  {captain_eye(c)}")
+        io.print(f"    {muster_hint(c)}")
         io.print()
 
-    io.print("  March receipts (what changes the journey):")
-    for note in commission.culture.get('march_receipt_notes', []):
-        io.print(f"    · {note}")
+    io.print("  (Every figure behind these men is a receipt — a changeable")
+    io.print("   in-world fact. 'inspect <cohort>' opens the door; 'help receipts'")
+    io.print("   states the doctrine. Default to 'ledger on' if you'd rather the")
+    io.print("   figures rode alongside the prose throughout.)")
     io.print()
 
 
@@ -195,7 +181,7 @@ def _print_annotated_muster(commission: Commission, io: _IO) -> None:
 # Operations
 
 def _do_march(state: TutorialState, io: _IO, pace: str) -> None:
-    """Run the escort march and record the result."""
+    """Run the escort march and record the result — narrated, not tabulated."""
     io.print()
     io.print("--- March: Calais to Ardres ---")
 
@@ -203,18 +189,16 @@ def _do_march(state: TutorialState, io: _IO, pace: str) -> None:
     if pace == 'push':
         scn = dict(scn, pace=scn['pace'] * 1.20,
                    fat0=min(1.0, scn['fat0'] + 0.05))
-        io.print("  Pushing the pace — men cover ground faster but tire sooner.")
-        io.print("  (fat0 rises +5%; fatigue amplifies battle opening hazard)")
+        io.print("  You push the pace. The men cover the ground faster, but they")
+        io.print("  will come to any fight that follows the sooner blown.")
     elif pace == 'rest':
         scn = dict(scn, rest_every=3,
                    fat0=max(0.0, scn['fat0'] - 0.03))
-        io.print("  Rest days every 3rd — men arrive fresher, march takes longer.")
-        io.print("  (fat0 falls -3%; rest days pause supply consumption)")
+        io.print("  You call a rest every third day. The men arrive fresher; the")
+        io.print("  road takes longer.")
     else:
-        io.print("  Normal pace — 10 miles a day on the king's road.")
+        io.print("  A steady pace on the king's road — ten miles to the day.")
 
-    io.print()
-    io.print("  [The march model runs: each day ticks supply, water, fatigue.]")
     io.print()
 
     tr = Trace(phase='march', scenario='tutorial_escort_march', seed=state.seed)
@@ -223,19 +207,33 @@ def _do_march(state: TutorialState, io: _IO, pace: str) -> None:
     state.trace_phases.append(tr)
     state.day += result['days']
 
-    arrived_str = "arrived" if result['arrived'] else "did NOT arrive (deadline missed)"
-    io.print(f"  Result   : army {arrived_str} in {result['days']} days")
-    io.print(f"  Effective: {result['effective']:,} men")
-    io.print(f"  Fatigue  : {result['fatigue']:.0%}"
-             + ("  (high — will amplify battle hazard)" if result['fatigue'] > 0.25 else ""))
-    io.print(f"  Supply   : {result['stock_days']:.1f} days remaining")
+    # Narration — what a captain would report, no figures on the wall.
+    if result['arrived']:
+        io.print("  The escort comes through to Ardres within the time given.")
+    else:
+        io.print("  The escort fails to make Ardres in time; the road has beaten you.")
+    weary = result['fatigue'] > 0.25
+    io.print("  The men are footsore" + (" and hard-used" if weary else "")
+             + (", but in fighting order." if not weary else " — they will not be at their best in a fight."))
     if result.get('dead', 0) > 0:
-        io.print(f"  Dead     : {result['dead']} (thirst/disease — trace records each cause)")
+        io.print("  Some were lost on the road, to thirst and the camp sickness.")
+
+    # The figures live behind the door (explain / ledger), not in the narration.
+    explain = [
+        f"arrived={result['arrived']}: miles covered reached the goal before the deadline of {scn.get('max_days', 12)} days",
+        f"march took {result['days']} days; {result['effective']:,} effectives came through",
+        f"fatigue on arrival {result['fatigue']:.0%}; fatigue amplifies the opening hazard of any battle (fat_amp=2.0)",
+        f"supply remaining {result['stock_days']:.1f} days; rest days pause consumption, a hard pace raises fat0",
+    ]
+    if result.get('dead', 0) > 0:
+        explain.append(f"{result['dead']} dead on the march — the trace records each cause (thirst/disease)")
     if result.get('stragglers', 0) > 0:
-        io.print(f"  Stragglers: {result['stragglers']}")
-    io.print()
-    io.print("  [WHY 'arrived': miles_covered >= 50 before max_days=12]")
-    io.print("  [WHY fatigue: 0.025*hard^2 per day; rest days recover 0.06]")
+        explain.append(f"{result['stragglers']} stragglers fell out")
+    state.inspector.set_explain("the march", explain)
+    if state.inspector.ledger:
+        state.inspector.render_explain(io)
+    else:
+        io.print("  (type 'explain' to see how the road told on them)")
 
     # Dispatch sent automatically in tutorial — patron always hears
     full_claims = {
@@ -255,11 +253,8 @@ def _do_engagement(state: TutorialState, io: _IO) -> None:
     io.print()
     io.print("  A French column holds the road. Your archers deploy on both flanks.")
     fat0 = state.march_result.get('fatigue', 0.05) if state.march_result else 0.05
-    io.print(f"  Your starting fatigue: {fat0:.0%}"
-             + ("  (elevated — archers tire faster in contact)" if fat0 > 0.20 else ""))
-    io.print()
-    io.print("  [BP-Lattice runs: English (~2000 men, 200 agents) vs French (~1500, 150 agents)]")
-    io.print("  [Archers fire volleys at ADVANCE phase; melee fires at CONTACT]")
+    if fat0 > 0.20:
+        io.print("  Your men come up blown from the road — they will tire fast in contact.")
     io.print()
 
     scn = _tutorial_skirmish_scn(fat0=min(0.60, fat0))
@@ -269,20 +264,44 @@ def _do_engagement(state: TutorialState, io: _IO) -> None:
     state.trace_phases.append(tr)
 
     s0, s1 = result['s'][0], result['s'][1]
-    winner = {0: 'English', 1: 'French'}.get(result['win'], 'inconclusive')
-    io.print(f"  Outcome    : {winner} prevail")
-    io.print(f"  English dead : {s0.get('dead', 0)}   (pre-break: {s0.get('pre', 0)}, pursuit: {s0.get('post', 0)})")
-    io.print(f"  French dead  : {s1.get('dead', 0)}   (pre-break: {s1.get('pre', 0)}, pursuit: {s1.get('post', 0)})")
 
     if result['win'] == 0:
-        io.print()
-        io.print("  [WHY English prevailed: archers degraded French belief before contact;")
-        io.print("   the patrol broke when rout appraisal cues exceeded their threshold]")
-        io.print("  [Most French dead occurred in the pursuit — 'casualties live in the pursuit']")
+        io.print("  Your bowmen gall the column before it can close; the patrol,")
+        io.print("  stung by the arrow-storm, breaks and runs. Your men see them off")
+        io.print("  the road. The dead they leave behind are far more theirs than yours.")
+    elif result['win'] == 1:
+        io.print("  The patrol comes to grips and your line gives way. They bloody you")
+        io.print("  on the road — a costly escort.")
     else:
+        io.print("  The fight is broken off undecided; both draw away to lick wounds.")
+
+    # Mechanics behind the door — agent counts, phase labels, cue thresholds.
+    if result['win'] == 0:
+        fr_pre, fr_post = s1.get('pre', 0), s1.get('post', 0)
+        where = ("most French dead fell in the pursuit after the break"
+                 if fr_post > fr_pre else
+                 "most French dead fell to the arrow-storm before the break")
+        explain = [
+            "the skirmish ran the BP-Lattice resolver: English (~2000 men, 200 agents) vs French (~1500, 150 agents)",
+            "archers loosed volleys at the ADVANCE phase; melee opened at CONTACT",
+            "the patrol broke when its rout appraisal cues exceeded their threshold",
+            f"casualties split pre/post-break — here, {where}",
+            f"English dead {s0.get('dead', 0)} (pre-break {s0.get('pre', 0)}, pursuit {s0.get('post', 0)}); "
+            f"French dead {s1.get('dead', 0)} (pre-break {fr_pre}, pursuit {fr_post})",
+        ]
+    else:
+        explain = [
+            "the skirmish ran the BP-Lattice resolver: English (~2000 men, 200 agents) vs French (~1500, 150 agents)",
+            "march fatigue raised the English opening hazard (fat_amp=2.0)",
+            "resting a day before the engagement lowers fat0 and the opening hazard",
+            f"English dead {s0.get('dead', 0)}; French dead {s1.get('dead', 0)}",
+        ]
+    state.inspector.set_explain("the road-fight", explain)
+    if state.inspector.ledger:
         io.print()
-        io.print("  [WHY French prevailed: march fatigue raised the English opening hazard;")
-        io.print("   consider resting one day before an engagement (reduces fat0)]")
+        state.inspector.render_explain(io)
+    else:
+        io.print("  (type 'explain' to see why it went as it did)")
 
     won = (result['win'] == 0)
     state.belief_db.receive_dispatch('battle', {
@@ -300,10 +319,16 @@ def _do_evade(state: TutorialState, io: _IO) -> None:
     io.print()
     io.print("  A farm track to the north adds a day to the march.")
     io.print("  The patrol sees nothing. No blood spilled.")
-    io.print(f"  (Season day now: {state.day})")
     io.print()
-    io.print("  [WHY no battle entry: evading means no trace battle phase;")
-    io.print("   the escort mission predicate checks only 'march arrived' when no battle exists]")
+    state.inspector.set_explain("the evasion", [
+        "evading means no battle phase enters the trace",
+        "the escort mission predicate then checks only that the march arrived",
+        f"season day is now {state.day}",
+    ])
+    if state.inspector.ledger:
+        state.inspector.render_explain(io)
+    else:
+        io.print("  (type 'explain' to see what evading costs and saves)")
 
 
 # ------------------------------------------------------------------
@@ -328,17 +353,18 @@ def _print_winter_court(state: TutorialState, io: _IO) -> None:
     mission_actual = evaluate_mission('escort', ts)
     mission_believed = patron_believes_success('escort', state.belief_db)
 
-    # Patron assessment — always explained
+    # Patron assessment — spoken in the world; the mechanics go behind 'explain'.
+    court_explain: List[str] = []
     if mission_believed:
         io.print("  'The escort reached Ardres. Brandon is content. Well done.'")
-        io.print()
-        io.print("  [WHY patron credits success: dispatch carried 'arrived=True';")
-        io.print("   escort objective_predicate = march arrived AND (no battle OR battle won)]")
+        court_explain.append(
+            "patron credits success: the dispatch carried arrived=True; the escort "
+            "predicate is march-arrived AND (no battle OR battle won)")
     else:
         io.print("  'We have no word from the road. Brandon's man tells a different story.'")
-        io.print()
-        io.print("  [WHY patron does not credit success: the dispatch carried 'arrived=False'")
-        io.print("   or no dispatch was received for the march phase]")
+        court_explain.append(
+            "patron does not credit success: the march dispatch carried arrived=False, "
+            "or no dispatch reached him for the march phase")
 
     if state.battle_result:
         s0 = state.battle_result.get('s', [{}, {}])[0]
@@ -348,7 +374,9 @@ def _print_winter_court(state: TutorialState, io: _IO) -> None:
             prisoners = max(1, s0.get('dead', 0) // 10)
             if prisoners > 0:
                 ransom = state.commission.culture['career']['ransom_share']
-                io.print(f"  Prisoners: {prisoners} men taken. Crown claims {ransom:.0%} of ransom.")
+                io.print(f"  Prisoners are taken; the Crown will claim its share of their ransom.")
+                court_explain.append(
+                    f"{prisoners} men taken prisoner; Crown ransom share {ransom:.0%}")
         elif state.battle_result.get('win') == 1:
             io.print()
             io.print("  'We hear the patrol bloodied you on the road. Costly escort.'")
@@ -363,26 +391,17 @@ def _print_winter_court(state: TutorialState, io: _IO) -> None:
     io.print()
     io.print(f"  Quarter policy was '{qp}': {qc.get('note', '')}")
 
-    # Favor calculation
-    favor = state.patron_favor
-    favor_delta = qc.get('patron_favor_mod', 0.0)
-    if mission_believed:
-        favor_delta += 0.15
-    else:
-        favor_delta -= 0.10
+    # Favor — computed as before; the arithmetic lives behind 'inspect favor'.
+    base = state.patron_favor
+    quarter_delta = qc.get('patron_favor_mod', 0.0)
+    mission_delta = 0.15 if mission_believed else -0.10
+    favor_delta = quarter_delta + mission_delta
     # Tutorial clamp: floor at 0.35 so first session is not punishing
     favor_delta = max(favor_delta, -0.15)
-    favor = max(0.35, min(1.0, favor + favor_delta))
+    favor = max(0.35, min(1.0, base + favor_delta))
     state.patron_favor = favor
+    state.inspector.set_favor(base, mission_delta, quarter_delta, favor, mission_believed)
 
-    io.print()
-    io.print(f"  [Favor calculation: base {state.commission.patron_favor:.2f}"
-             f"  + mission {'credit' if mission_believed else 'penalty'} "
-             f"{'(+0.15)' if mission_believed else '(-0.10)'}"
-             f"  + quarter {favor_delta - (0.15 if mission_believed else -0.10):+.2f}"
-             f"  = {favor:.2f}]")
-
-    # Credit label
     thresholds = state.commission.culture['career']['credit_thresholds']
     labels = state.commission.culture['doctrine_vocab']['favor_labels']
 
@@ -400,31 +419,46 @@ def _print_winter_court(state: TutorialState, io: _IO) -> None:
         return ordered[-1][1]
 
     credit = _label(favor)
+    court_explain.append(
+        f"favor {base:.2f} start {mission_delta:+.2f} mission "
+        f"{quarter_delta:+.2f} quarter = {favor:.2f} [{credit}]")
+    state.inspector.set_explain("the winter court", court_explain)
+
+    # Standing, spoken in the world — no percentage on the wall.
     io.print()
-    io.print(f"  Season result: patron favor {favor:.0%}  [{credit}]")
-    io.print()
+    if favor > base:
+        io.print("  You stand higher in his regard than when the season began.")
+    elif favor < base:
+        io.print("  You stand lower in his regard than when the season began.")
+    else:
+        io.print("  You stand about where you began in his regard.")
 
     if favor >= thresholds.get('favor', 0.60):
         io.print("  Lord Camoys offers you a commission for the next season.")
     elif favor >= thresholds.get('neutral', 0.40):
         io.print("  Your service is noted. A commission may come — in time.")
         if mission_believed and qp == 'free_rein':
-            io.print("  [To improve: choose 'strict' or 'liberal' quarter policy"
-                     " — 'free_rein' cost -0.15 patron favor]")
+            io.print("  To stand higher, hold a tighter quarter — free rein wins the")
+            io.print("  men but costs you with your patron.")
         elif not mission_believed:
-            io.print("  [To improve: ensure the march arrives and any battle is won;"
-                     " both check 'arrived=True']")
+            io.print("  To stand higher, see the escort through and send word that it arrived.")
         else:
-            io.print("  [To improve: send accurate dispatches; achieve the mission objective]")
+            io.print("  To stand higher, meet the commission's terms and send true word of it.")
     else:
         io.print("  Lord Camoys is silent on the matter of next season.")
         if not mission_believed:
-            io.print("  [To improve: ensure 'arrived=True' in your march dispatch]")
+            io.print("  To stand higher, see the march arrive and send word that it did.")
         elif qp == 'free_rein':
-            io.print("  [To improve: choose 'strict' or 'liberal' quarter policy"
-                     " — 'free_rein' cost -0.15 patron favor]")
+            io.print("  To stand higher, hold a tighter quarter — free rein cost you here.")
         else:
-            io.print("  [To improve: ensure 'arrived=True' in your march dispatch]")
+            io.print("  To stand higher, see the march arrive and send true word of it.")
+
+    # The reckoning behind his regard: inline if the ledger is open, else a pointer.
+    io.print()
+    if state.inspector.ledger:
+        state.inspector.render_favor(io)
+    else:
+        io.print("  (type 'inspect favor' to see the reckoning behind his regard)")
 
     io.print()
     io.print("  Tutorial complete.")
@@ -440,10 +474,11 @@ def _print_winter_court(state: TutorialState, io: _IO) -> None:
 # Quarter policy prompt (extracted so tests can call directly)
 
 def _print_quarter_options(io: _IO) -> None:
-    """Print the three quarter policy options with their favor modifiers."""
-    io.print("  strict     → patron pleased; men grumble (patron favor +0.10)")
-    io.print("  liberal    → the custom of the age; balanced (no modifier)")
-    io.print("  free_rein  → men happy; patron will hear of it (patron favor -0.15)")
+    """The three quarter policies, stated as worldly consequences (no figures)."""
+    io.print("  strict     The men will grumble at the tight rein — but your patron")
+    io.print("             will hear you kept good order, and think the better of you.")
+    io.print("  liberal    The custom of the age. Contribution taken, not plundered.")
+    io.print("  free_rein  The men will love you for it. Your patron will not.")
 
 
 def _ask_quarter_policy(commission: 'Commission', culture: Dict, io: _IO) -> str:
@@ -476,6 +511,9 @@ Tutorial commands:
   engage                   — fight the French patrol (available after march)
   evade                    — find a way around the patrol (+1 day, available after march)
   status                   — show current state
+  inspect <cohort|favor>   — open the door on the figures behind your men
+  explain                  — why the last outcome went as it did
+  ledger [on|off]          — show figures alongside the prose (default off)
   help [topic]             — list topics (no arg) or explain one
   done                     — conclude operations and go to winter court
 """
@@ -512,9 +550,9 @@ def _operations_phase(state: TutorialState, io: _IO) -> None:
             if pace is None:
                 io.print()
                 io.print("  DECISION 2: March pace")
-                io.print("  normal → ~10 miles/day; balanced fatigue and timing")
-                io.print("  push   → +20% distance/day; men arrive tired (fat0 +5%)")
-                io.print("  rest   → rest day every 3rd; men fresher, takes longer")
+                io.print("  normal   A steady ten miles to the day; men in fighting order.")
+                io.print("  push     Faster, but they come blown to any fight that follows.")
+                io.print("  rest     A rest every third day; fresher men, a longer road.")
                 raw_pace = io.input("  Pace [normal/push/rest]: ").strip().lower()
                 pace = raw_pace if raw_pace in ('normal', 'push', 'rest') else 'normal'
             _do_march(state, io, pace)
@@ -558,6 +596,9 @@ def _operations_phase(state: TutorialState, io: _IO) -> None:
             elif patrol_decided:
                 io.print("  Patrol     : evaded")
             io.print(f"  Favor      : {state.patron_favor:.0%} (patron's current estimate)")
+
+        elif cmd in ('inspect', 'explain', 'ledger'):
+            inspect_dispatch(cmd, arg, state.commission, state.inspector, io)
 
         elif cmd == 'help':
             show_help(arg if arg else None, io)

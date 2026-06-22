@@ -50,6 +50,9 @@ from core.march import run_march
 from core.lattice import Battle
 from core.chain import siege_to_march, march_to_battle
 from core.stations import Station, STATIONS, StationState
+from clients.cli.inspect import (
+    Inspector, captain_eye, muster_hint, dispatch as inspect_dispatch,
+)
 from core.scenarios.harfleur import harfleur
 from core.scenarios.marches import agincourt_march
 from core.scenarios.agincourt import agincourt
@@ -106,6 +109,7 @@ class SeasonState:
         self.commission = commission
         self.seed = seed
         self.belief_db = BeliefDB()
+        self.inspector = Inspector()
         self.trace_phases: List[Trace] = []
         self.composed_trace: Optional[Dict] = None
 
@@ -201,10 +205,11 @@ class SeasonState:
 # Quarter policy prompt helpers (extracted for testability)
 
 def _print_quarter_options(io: _IO) -> None:
-    """Print the three quarter policy options with favor modifiers."""
-    io.print("  strict     → patron pleased; men grumble (patron favor +0.10)")
-    io.print("  liberal    → controlled contribution; balanced (no modifier)")
-    io.print("  free_rein  → full plunder; men content, patron wary (patron favor -0.15)")
+    """The three quarter policies, stated as worldly consequences (no figures)."""
+    io.print("  strict     The men will grumble at the tight rein — but your patron")
+    io.print("             will hear you kept good order, and think the better of you.")
+    io.print("  liberal    The custom of the age. Contribution taken, not plundered.")
+    io.print("  free_rein  The men will love you for it. Your patron will not.")
 
 
 def _ask_quarter_policy(commission: 'Commission', culture: Dict, io: _IO) -> str:
@@ -286,8 +291,19 @@ def _run_siege_op(state: SeasonState, io: _IO) -> None:
     vocab = state.commission.culture['doctrine_vocab']['victory_terms']
     outcome_label = vocab.get(result['outcome'], result['outcome'])
     io.print(f"  Harfleur {outcome_label} on day {result['day']}.")
-    io.print(f"  Besieger dead: {result['dead']:,}  sick: {result['sick']:,}  "
-             f"(unfit frac: {result['unfit_frac']:.1%})")
+    # The cost, spoken in the world; the figures go behind 'explain'/'ledger'.
+    if result['unfit_frac'] >= 0.25:
+        io.print("  The siege came dear without a blow struck: the camp sickness")
+        io.print("  thinned the host, and many will not be fit to march.")
+    elif result['dead'] or result['sick']:
+        io.print("  Some were lost to the flux in the wet camps, but the host holds together.")
+    state.inspector.set_explain("the siege", [
+        f"outcome {result['outcome']} on day {result['day']} (siege clock: disease, supply, honour)",
+        f"besieger dead {result['dead']:,}; sick {result['sick']:,}; unfit fraction {result['unfit_frac']:.1%}",
+        "the unfit fraction carries forward as starting fatigue for the march",
+    ])
+    if state.inspector.ledger:
+        state.inspector.render_explain(io)
 
     # Station-aware observation: HILL/KNOT can see results directly
     if state.station in (Station.HILL, Station.KNOT):
@@ -336,10 +352,20 @@ def _run_march_op(state: SeasonState, io: _IO) -> None:
     state.trace_phases.append(tr)
     state.elapsed(result['days'])
 
-    status = "arrived" if result['arrived'] else "did not arrive"
-    io.print(f"  Army {status} in {result['days']} days.")
-    io.print(f"  Effective: {result['effective']:,}  Fatigue: {result['fatigue']:.1%}  "
-             f"Stock remaining: {result['stock_days']:.1f} days")
+    if result['arrived']:
+        io.print(f"  The host came through to Agincourt in {result['days']} days.")
+    else:
+        io.print(f"  After {result['days']} days the host had not made Agincourt — the road beat it.")
+    weary = result['fatigue'] > 0.30
+    io.print("  They came to the field footsore"
+             + (" and hard-used — they will not be at their best." if weary else ", but in order."))
+    state.inspector.set_explain("the march", [
+        f"arrived={result['arrived']} in {result['days']} days; {result['effective']:,} effectives came through",
+        f"fatigue on arrival {result['fatigue']:.1%}; it amplifies the opening hazard of the battle (fat_amp=2.0)",
+        f"supply remaining {result['stock_days']:.1f} days",
+    ])
+    if state.inspector.ledger:
+        state.inspector.render_explain(io)
 
     if state.station in (Station.HILL, Station.KNOT):
         source = 'sightlines' if state.station == Station.KNOT else 'landscape'
@@ -389,9 +415,21 @@ def _run_battle_op(state: SeasonState, io: _IO) -> None:
     state.trace_phases.append(tr)
 
     winner = {0: 'English', 1: 'French'}.get(result['win'], 'unknown')
-    io.print(f"  Battle concluded: {winner} won.")
     s0, s1 = result['s'][0], result['s'][1]
-    io.print(f"  English dead: {s0['dead']:,}  French dead: {s1['dead']:,}")
+    if result['win'] == 0:
+        io.print("  The day is yours. The French array broke and was ridden down;")
+        io.print("  the dead lay thick, and far more of theirs than of ours.")
+    elif result['win'] == 1:
+        io.print("  The day is lost. Your line gave way, and the field is theirs.")
+    else:
+        io.print("  The fight was broken off undecided.")
+    state.inspector.set_explain("the battle", [
+        f"winner: {winner}",
+        f"English dead {s0['dead']:,}; French dead {s1['dead']:,}",
+        "casualties concentrate in the pursuit of the broken side (casualties live in the pursuit)",
+    ])
+    if state.inspector.ledger:
+        state.inspector.render_explain(io)
 
     if state.station in (Station.HILL, Station.KNOT, Station.FRONT_RANK):
         source = {
@@ -615,6 +653,9 @@ Available commands:
   wait [N]       — advance N days (default 1); delivers queued orders
   table          — show the campaign Table
   status         — show elapsed days and operation results
+  inspect <thing>— open the door on a cohort's or favor's figures
+  explain        — why the last outcome went as it did
+  ledger [on|off]— show figures alongside the prose (default off)
   done           — conclude operations and proceed to audit
   help [topic]   — list topics (no arg) or explain one
 
@@ -690,6 +731,8 @@ def _operations_phase(state: SeasonState, io: _IO) -> None:
                          state.pending_orders, io=io)
         elif cmd == 'status':
             _print_status(state, io)
+        elif cmd in ('inspect', 'explain', 'ledger'):
+            inspect_dispatch(cmd, arg, state.commission, state.inspector, io)
         elif cmd in ('done', 'quit', 'q'):
             ops_incomplete = (
                 state.siege_result is not None and state.march_result is None
@@ -771,13 +814,14 @@ def _audit_phase(state: SeasonState, io: _IO) -> None:
 
     qp = state.quarter_policy
     qc = state.commission.culture['quarter_customs'].get(qp, {})
-    favor_delta = qc.get('patron_favor_mod', 0.0)
-    if mission_believed:
-        favor_delta += 0.15
-    else:
-        favor_delta -= 0.10
+    quarter_delta = qc.get('patron_favor_mod', 0.0)
+    mission_delta = 0.15 if mission_believed else -0.10
 
-    state.patron_favor = max(0.0, min(1.0, state.patron_favor + favor_delta))
+    base = state.patron_favor
+    state.patron_favor = max(0.0, min(1.0, base + quarter_delta + mission_delta))
+    # The arithmetic lives behind 'inspect favor' — not on the wall.
+    state.inspector.set_favor(base, mission_delta, quarter_delta,
+                              state.patron_favor, mission_believed)
 
 
 def _match_glyph(match) -> str:
@@ -821,8 +865,15 @@ def _winter_court_phase(state: SeasonState, io: _IO) -> None:
     else:
         io.print(f"  {patron} is silent on the matter of next season.")
 
+    # Standing, spoken in the world; the reckoning is behind 'inspect favor'.
     io.print()
-    io.print(f"  Season closed. Patron favor: {favor:.0%}  [{credit_label}]")
+    io.print(f"  The season is closed. In {patron}'s regard you stand as a "
+             f"man of {credit_label}.")
+    if state.inspector.ledger:
+        io.print()
+        state.inspector.render_favor(io)
+    else:
+        io.print("  (type 'inspect favor' to see the reckoning behind his regard)")
 
 
 def _print_court_scene(state: SeasonState, io: _IO,
@@ -975,16 +1026,26 @@ def run_season(culture_name: str = 'harfleur_1415', seed: int = 0,
     # M7.A.3: Arrival-to-take-command opening (replaces bare muster summary)
     _arrival_scene(commission, culture, io)
 
-    # Muster details follow the arrival scene as supporting information
+    # Muster details follow the arrival scene as supporting information —
+    # a captain's eye on the men, not a spreadsheet. The figures live behind
+    # 'inspect <cohort>' (and 'ledger on' for the grognard who wants them inline).
     io.print("=" * 55)
-    io.print(f"  COMMISSION — ARMY RECEIPTS")
+    io.print(f"  COMMISSION — you take the measure of your men")
     io.print("=" * 55)
+    io.print(f"  From {commission.patron}. Mission: {commission.mission.upper()}.")
     io.print()
-    io.print(muster_summary(commission))
+    for c in commission.army_cohorts:
+        if not isinstance(c, dict):
+            continue
+        io.print(f"  {captain_eye(c)}")
+        io.print(f"    {muster_hint(c)}")
     io.print()
-    io.print("  Strings:")
-    io.print(f"    Deadline:       {commission.strings['deadline_days']} days")
-    io.print(f"    Quarter policy: {commission.strings['quarter_policy']} (negotiable)")
+    io.print("  (Every figure behind these men is a receipt — 'inspect <cohort>'")
+    io.print("   opens the door, 'help receipts' states the doctrine, 'ledger on'")
+    io.print("   keeps the figures alongside the prose.)")
+    io.print()
+    io.print(f"  Deadline: {commission.strings['deadline_days']} days.  "
+             f"Quarter policy: {commission.strings['quarter_policy']} (negotiable).")
     io.print()
 
     # Decision 1: quarter policy

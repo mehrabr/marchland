@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "marchland"
-version = "0.1.1"
+version = "0.2.0"
 requires-python = "==3.12.*"  # Model A (Ren'Py 8.5.3 bundled interpreter); was ==3.14.*
                               # Re-bless GOLDEN_HASH + CHAIN_GOLDEN_HASH after switching:
                               #   python3 -c "from tests.test_reproducibility import *; ..."
