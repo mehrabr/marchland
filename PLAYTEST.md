@@ -1,6 +1,6 @@
-# MARCHLAND — Playtest Guide v0.1.0
+# MARCHLAND — Playtest Guide v0.2.0
 
-**Version:** v0.1.0 "The Commission of Harfleur"
+**Version:** v0.2.0 "Strip the scientism" (vertical slice: The Commission of Harfleur)
 **Runtime required:** Python 3.12.x (exact minor required; see note below)
 
 ---
