@@ -35,7 +35,15 @@ python -m clients.cli 1415 --seeds 12
 python -m clients.cli season --culture harfleur_1415
 ```
 
-**Requirements:** Python 3.14.x, numpy==2.4.6, rich~=15.0
+**Requirements:** Python 3.12.x, numpy==2.4.6, rich~=15.0
+
+**Ren'Py vertical slice** (requires [Ren'Py 8.5.3](https://www.renpy.org/latest.html)):
+```bash
+# SDK launcher path (Mac/Linux)
+/path/to/renpy-8.5.3-sdk/renpy.sh clients/renpy
+
+# Or point the Ren'Py GUI launcher at: clients/renpy/
+```
 
 ---
 
@@ -190,6 +198,32 @@ Class A constants in `core/constants.py` are frozen. Changing one requires a bat
 ---
 
 ## Ren'Py client and the vertical slice
+
+### Running the client
+
+**From source (all platforms):**
+
+1. Install [Ren'Py 8.5.3](https://www.renpy.org/latest.html) — exactly this version; the bundled Python must be 3.12.
+2. numpy 2.4.6 is already vendored in `clients/renpy/game/python-packages/` — no separate install needed.
+3. Launch:
+
+```bash
+# Mac / Linux — SDK CLI
+/path/to/renpy-8.5.3-sdk/renpy.sh clients/renpy
+
+# Windows — SDK CLI
+\path\to\renpy-8.5.3-sdk\renpy.exe clients/renpy
+
+# Or use the Ren'Py GUI launcher: add project → point at clients/renpy/ → Launch
+```
+
+**Mac distributed build** (when a `.app` is provided): open the `.app` directly; numpy is bundled inside.
+
+> **Linux/Windows note:** the distributed build ships only a `cp312-cp312-macosx_11_0_arm64` numpy wheel, so non-Mac users must run from source with the SDK as above.
+
+The slice entry point is `label slice_start` in `clients/renpy/game/slice.rpy`. It runs a single Agincourt engagement (seed 42 by default).
+
+---
 
 The Ren'Py client (`clients/renpy/`) is a visual novel skin over the same headless sim. Nothing in `core/` knows Ren'Py exists. The integration has three layers:
 
